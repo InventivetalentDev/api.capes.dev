@@ -41,6 +41,7 @@ app.get("/", function (req, res) {
 });
 
 const SUPPORTED_TYPES = ["optifine"];
+const HAS_NO_CAPE = "hasN0Cape";
 
 app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
@@ -52,7 +53,7 @@ app.get("/load/:player/:type?", function (req, res) {
     player = player.replace(/-/g, "").toLowerCase();
 
     if (SUPPORTED_TYPES.indexOf(type) === -1) {
-        res.status(400).json({error:type+" is not supported. ("+SUPPORTED_TYPES+")"})
+        res.status(400).json({error: type + " is not supported. (" + SUPPORTED_TYPES + ")"})
         return;
     }
 
@@ -81,12 +82,12 @@ app.get("/load/:player/:type?", function (req, res) {
             let name = nameAndUuid[0];
             let uuid = nameAndUuid[1];
 
-            console.info("Loading " + type + " cape for " + name + " ("+uuid+")...");
+            console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
             util.fetchOptifineCape(name).then(capeBuffer => {
                 let time = Math.floor(Date.now() / 1000);
-                let imageHash = util.bufferHash(capeBuffer);
-                if(imageHash === existingCape.imageHash) {
+                let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
+                if (existingCape && imageHash === existingCape.imageHash) {
                     console.info("Updating time of existing " + type + " cape for " + name + " (" + existingCape.hash + ")");
                     existingCape.time = time;
                     existingCape.save(function (err, cape) {
@@ -119,10 +120,7 @@ app.get("/load/:player/:type?", function (req, res) {
                         sendCapeInfo(req, res, cape);
                     })
                 }
-            }).catch(err => {
-                console.warn(err);
-                res.status(500).json({error: "failed to load optifine cape"});
-            })
+            });
         }).catch(err => {
             console.warn(err);
             res.status(500).json({error: "failed to get username"});
@@ -140,7 +138,7 @@ app.get("/history/:player/:type?", function (req, res) {
     player = player.replace(/-/g, "").toLowerCase();
 
     if (SUPPORTED_TYPES.indexOf(type) === -1) {
-        res.status(400).json({error:type+" is not supported. ("+SUPPORTED_TYPES+")"})
+        res.status(400).json({error: type + " is not supported. (" + SUPPORTED_TYPES + ")"})
         return;
     }
 
@@ -161,14 +159,16 @@ app.get("/history/:player/:type?", function (req, res) {
 
         let history = [];
         for (let cape of capes) {
-            history.push({
-                hash: cape.hash,
-                playerName: cape.playerName,
-                time: cape.time,
-                imageHash: cape.imageHash,
-                capeUrl: "https://api.capes.dev/get/" + cape.hash,
-                imageUrl: "https://api.capes.dev/img/" + cape.hash
-            })
+            if(cape.imageHash !== HAS_NO_CAPE) {
+                history.push({
+                    hash: cape.hash,
+                    playerName: cape.playerName,
+                    time: cape.time,
+                    imageHash: cape.imageHash,
+                    capeUrl: "https://api.capes.dev/get/" + cape.hash,
+                    imageUrl: "https://api.capes.dev/img/" + cape.hash
+                })
+            }
         }
         res.json({
             type: type,
@@ -217,14 +217,15 @@ app.get("/img/:hash", function (req, res) {
 
 function sendCapeInfo(req, res, cape) {
     res.json({
+        msg: cape.image ? "Cape found" : "Player has no cape",
         hash: cape.hash,
         player: cape.player,
         playerName: cape.playerName,
         type: cape.type,
         time: cape.time,
-        imageHash: cape.imageHash,
-        capeUrl: "https://api.capes.dev/get/" + cape.hash,
-        imageUrl: "https://api.capes.dev/img/" + cape.hash
+        imageHash: cape.imageHash === HAS_NO_CAPE ? null : cape.imageHash,
+        capeUrl: cape.image ? ("https://api.capes.dev/get/" + cape.hash) : null,
+        imageUrl: cape.image ? ("https://api.capes.dev/img/" + cape.hash) : null
     })
 }
 

@@ -144,11 +144,27 @@ function fetchOptifineCape(name) {
     if(name.length > 16) throw new Error("name too long");
     let url = "http://s.optifine.net/capes/" + name + ".png";
     console.log("GET " + url);
-    return axios({
-        method: "get",
-        url: url,
-        responseType: "arraybuffer"
-    }).then(resp => Buffer.from(resp.data, "binary"))
+    return new Promise(resolve => {
+        axios({
+            method: "get",
+            url: url,
+            responseType: "arraybuffer"
+        }).then(resp => {
+            resolve(Buffer.from(resp.data, "binary"));
+        }).catch(err=>{
+            if(err.response) {
+                let resp = err.response;
+                console.warn("failed to get optifine cape for " + name);
+                if (resp.status === 404) {
+                    resolve(null);
+                } else {
+                    console.warn("optifine status: " + resp.status);
+                }
+            }else{
+                console.warn(err);
+            }
+        })
+    })
 }
 
 function bufferHash(buffer) {
