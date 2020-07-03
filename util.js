@@ -194,7 +194,7 @@ function fetchMinecraftcapesCape(uuid) {
         }).catch(err=>{
             if(err.response) {
                 let resp = err.response;
-                console.warn("failed to get minecraftcapes cape for " + name);
+                console.warn("failed to get minecraftcapes cape for " + uuid);
                 if (resp.status === 404) {
                     resolve(null);
                 } else {
