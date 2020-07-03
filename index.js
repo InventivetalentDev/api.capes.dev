@@ -86,26 +86,39 @@ app.get("/load/:player/:type?", function (req, res) {
             util.fetchOptifineCape(name).then(capeBuffer => {
                 let time = Math.floor(Date.now() / 1000);
                 let imageHash = util.bufferHash(capeBuffer);
-                let capeHash = util.capeHash(imageHash, player, type, time);
+                if(imageHash === existingCape.imageHash) {
+                    console.info("Updating time of existing " + type + " cape for " + name + " (" + existingCape.hash + ")");
+                    existingCape.time = time;
+                    existingCape.save(function (err, cape) {
+                        if (err) {
+                            console.warn("Failed to save cape");
+                            console.error(err);
+                            return;
+                        }
+                        sendCapeInfo(req, res, cape);
+                    })
+                } else {
+                    let capeHash = util.capeHash(imageHash, player, type, time);
 
-                console.info("Saving new " + type + " cape for " + name + " (" + capeHash + ")");
-                let cape = new Cape({
-                    hash: capeHash,
-                    player: uuid,
-                    playerName: name,
-                    type: type,
-                    time: time,
-                    imageHash: imageHash,
-                    image: capeBuffer
-                });
-                cape.save(function (err, cape) {
-                    if (err) {
-                        console.warn("Failed to save cape");
-                        console.error(err);
-                        return;
-                    }
-                    sendCapeInfo(req, res, cape);
-                })
+                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + ")");
+                    let cape = new Cape({
+                        hash: capeHash,
+                        player: uuid,
+                        playerName: name,
+                        type: type,
+                        time: time,
+                        imageHash: imageHash,
+                        image: capeBuffer
+                    });
+                    cape.save(function (err, cape) {
+                        if (err) {
+                            console.warn("Failed to save cape");
+                            console.error(err);
+                            return;
+                        }
+                        sendCapeInfo(req, res, cape);
+                    })
+                }
             }).catch(err => {
                 console.warn(err);
                 res.status(500).json({error: "failed to load optifine cape"});
