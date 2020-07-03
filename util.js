@@ -45,6 +45,8 @@ setInterval(function () {
 }, 2000);
 
 function doNameFetch(uuid, callback) {
+    if(uuid.length <32) throw new Error("uuid too short");
+    if(uuid.length >36) throw new Error("uuid too long");
     let url = "https://api.mojang.com/user/profiles/" + uuid + "/names";
     console.log("GET " + url);
     axios.get(url).then(resp => {
@@ -128,7 +130,7 @@ function uuidFromName(name) {
             resolve(uuidCache[name].uuid);
             return;
         }
-        nameQueue[name] = resolve;
+        uuidQueue[name] = resolve;
     })
 }
 
