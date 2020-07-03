@@ -100,8 +100,9 @@ app.get("/load/:player/:type?", function (req, res) {
                     })
                 } else {
                     let capeHash = util.capeHash(imageHash, player, type, time);
+                    let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width:0,height:0};
 
-                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + ")");
+                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " "+capeSize.width+"x"+capeSize.height+")");
                     let cape = new Cape({
                         hash: capeHash,
                         player: uuid,
@@ -109,6 +110,8 @@ app.get("/load/:player/:type?", function (req, res) {
                         type: type,
                         time: time,
                         imageHash: imageHash,
+                        width: capeSize.width || 0,
+                        height: capeSize.height || 0,
                         image: capeBuffer
                     });
                     cape.save(function (err, cape) {
@@ -164,6 +167,8 @@ app.get("/history/:player/:type?", function (req, res) {
                     hash: cape.hash,
                     playerName: cape.playerName,
                     time: cape.time,
+                    width: cape.width,
+                    height: cape.height,
                     imageHash: cape.imageHash,
                     capeUrl: "https://api.capes.dev/get/" + cape.hash,
                     imageUrl: "https://api.capes.dev/img/" + cape.hash
@@ -223,6 +228,8 @@ function sendCapeInfo(req, res, cape) {
         playerName: cape.playerName,
         type: cape.type,
         time: cape.time,
+        width: cape.width,
+        height: cape.height,
         imageHash: cape.imageHash === HAS_NO_CAPE ? null : cape.imageHash,
         capeUrl: cape.image ? ("https://api.capes.dev/get/" + cape.hash) : null,
         imageUrl: cape.image ? ("https://api.capes.dev/img/" + cape.hash) : null

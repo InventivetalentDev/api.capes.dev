@@ -1,6 +1,7 @@
 const axios = require("axios");
 const hasha = require("hasha");
 const crypto = require("crypto");
+const bufferImageSize = require("buffer-image-size");
 
 const nameCache = {}; // uuid -> name
 const uuidCache = {}; // name -> uuid
@@ -171,6 +172,10 @@ function bufferHash(buffer) {
     return hasha(buffer);
 }
 
+function bufferDimensions(buffer) {
+    return bufferImageSize(buffer);
+}
+
 function capeHash(imageHash, uuid, type, time) {
     let content = type + "_" + uuid + "_" + imageHash + "_" + time;
     return crypto.createHash("sha1").update(content).digest("hex");
@@ -182,5 +187,6 @@ module.exports = {
     nameAndUuid,
     fetchOptifineCape,
     bufferHash,
+    bufferDimensions,
     capeHash
 }

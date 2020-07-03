@@ -11,6 +11,7 @@
   "dependencies": {
     "axios": "^0.19.2",
     "body-parser": "^1.19.0",
+    "buffer-image-size": "^0.6.4",
     "express": "^4.17.1",
     "hasha": "^5.2.0",
     "mongoose": "^5.9.21",
