@@ -40,17 +40,31 @@ app.get("/", function (req, res) {
     res.json({msg: "Hi!"});
 });
 
-app.get("/load/optifine/:player", function (req, res) {
+const SUPPORTED_TYPES = ["optifine"];
+
+app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
-    if (player.length < 32) {
-        res.status(400).json({error: "invalid player uuid"});
+    let type = req.params.type || "optifine";
+    if (player.length < 2 || player.length > 36) {
+        res.status(400).json({error: "invalid player"});
         return;
     }
-    player = player.replace(/-/g, "");
+    player = player.replace(/-/g, "").toLowerCase();
 
-    let type = "optifine";//TODO: dynamic
+    if (SUPPORTED_TYPES.indexOf(type) === -1) {
+        res.status(400).json({error:type+" is not supported. ("+SUPPORTED_TYPES+")"})
+        return;
+    }
 
-    Cape.findOne({player: player, type: type}).sort({time: -1}).exec(function (err, existingCape) {
+    let capeQuery = {
+        type: type
+    };
+    if (player.length < 20) { // name
+        capeQuery.playerName = player;
+    } else { // uuid
+        capeQuery.player = player;
+    }
+    Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
         if (err) {
             console.error(err);
             res.status(500).json({error: "database error"});
@@ -63,8 +77,11 @@ app.get("/load/optifine/:player", function (req, res) {
             }
         }
 
-        util.nameFromUuid(player).then(name => {
-            console.info("Loading " + type + " cape for " + name + "...");
+        util.nameAndUuid(player).then(nameAndUuid => {
+            let name = nameAndUuid[0];
+            let uuid = nameAndUuid[1];
+
+            console.info("Loading " + type + " cape for " + name + " ("+uuid+")...");
 
             util.fetchOptifineCape(name).then(capeBuffer => {
                 let time = Math.floor(Date.now() / 1000);
@@ -74,7 +91,7 @@ app.get("/load/optifine/:player", function (req, res) {
                 console.info("Saving new " + type + " cape for " + name + " (" + capeHash + ")");
                 let cape = new Cape({
                     hash: capeHash,
-                    player: player,
+                    player: uuid,
                     playerName: name,
                     type: type,
                     time: time,
@@ -89,9 +106,63 @@ app.get("/load/optifine/:player", function (req, res) {
                     }
                     sendCapeInfo(req, res, cape);
                 })
+            }).catch(err => {
+                console.warn(err);
+                res.status(500).json({error: "failed to load optifine cape"});
             })
+        }).catch(err => {
+            console.warn(err);
+            res.status(500).json({error: "failed to get username"});
         })
-    })
+    });
+});
+
+app.get("/history/:player/:type?", function (req, res) {
+    let player = req.params.player;
+    let type = req.params.type || "optifine";
+    if (player.length < 2 || player.length > 36) {
+        res.status(400).json({error: "invalid player"});
+        return;
+    }
+    player = player.replace(/-/g, "").toLowerCase();
+
+    if (SUPPORTED_TYPES.indexOf(type) === -1) {
+        res.status(400).json({error:type+" is not supported. ("+SUPPORTED_TYPES+")"})
+        return;
+    }
+
+    let capeQuery = {
+        type: type
+    };
+    if (player.length < 20) { // name
+        capeQuery.playerName = player;
+    } else { // uuid
+        capeQuery.player = player;
+    }
+    Cape.find(capeQuery).sort({time: -1}).exec(function (err, capes) {
+        if (err) {
+            console.error(err);
+            res.status(500).json({error: "database error"});
+            return;
+        }
+
+        let history = [];
+        for (let cape of capes) {
+            history.push({
+                hash: cape.hash,
+                playerName: cape.playerName,
+                time: cape.time,
+                imageHash: cape.imageHash,
+                capeUrl: "https://api.capes.dev/get/" + cape.hash,
+                imageUrl: "https://api.capes.dev/img/" + cape.hash
+            })
+        }
+        res.json({
+            type: type,
+            player: player,
+            history: history
+        })
+    });
 });
 
 
