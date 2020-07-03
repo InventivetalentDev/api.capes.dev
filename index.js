@@ -143,3 +143,8 @@ function sendCapeInfo(req, res, cape) {
         imageUrl: "https://api.capes.dev/img/" + cape.hash
     })
 }
+
+
+server.listen(config.port, function () {
+    console.log(' ==> listening on *:' + config.port + "\n");
+});
