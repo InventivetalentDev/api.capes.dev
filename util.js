@@ -26,7 +26,7 @@ setInterval(function () {
 function doNameFetch(uuid, callback) {
     axios.get("https://api.mojang.com/user/profiles/" + uuid + "/names").then(resp => {
         let names = resp.data;
-        let name = names[names.length - 1];
+        let name = names[names.length - 1].name;
         nameCache[uuid] = name;
         callback(name);
     }).catch(err => {
