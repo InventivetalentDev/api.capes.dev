@@ -141,6 +141,17 @@ function justResolve(x) {
     })
 }
 
+function fetchCape(type, uuid, name) {
+    switch (type) {
+        case "optifine":
+            return fetchOptifineCape(name);
+        case "minecraftcapes":
+            return fetchMinecraftcapesCape(uuid);
+        default:
+            throw new Error("unknown cape type");
+    }
+}
+
 function fetchOptifineCape(name) {
     if(name.length > 16) throw new Error("name too long");
     let url = "http://s.optifine.net/capes/" + name + ".png";
@@ -160,6 +171,34 @@ function fetchOptifineCape(name) {
                     resolve(null);
                 } else {
                     console.warn("optifine status: " + resp.status);
+                }
+            }else{
+                console.warn(err);
+            }
+        })
+    })
+}
+
+function fetchMinecraftcapesCape(uuid) {
+    if(uuid.length <32) throw new Error("uuid too short");
+    if(uuid.length >36) throw new Error("uuid too long");
+    let url = "https://minecraftcapes.net/profile/"+uuid+"/cape";
+    console.log("GET " + url);
+    return new Promise(resolve => {
+        axios({
+            method: "get",
+            url: url,
+            responseType: "arraybuffer"
+        }).then(resp => {
+            resolve(Buffer.from(resp.data, "binary"));
+        }).catch(err=>{
+            if(err.response) {
+                let resp = err.response;
+                console.warn("failed to get minecraftcapes cape for " + name);
+                if (resp.status === 404) {
+                    resolve(null);
+                } else {
+                    console.warn("minecraftcapes status: " + resp.status);
                 }
             }else{
                 console.warn(err);

@@ -40,7 +40,7 @@ app.get("/", function (req, res) {
     res.json({msg: "Hi!"});
 });
 
-const SUPPORTED_TYPES = ["optifine"];
+const SUPPORTED_TYPES = ["optifine", "minecraftcapes"];
 const HAS_NO_CAPE = "hasN0Cape";
 
 app.get("/load/:player/:type?", function (req, res) {

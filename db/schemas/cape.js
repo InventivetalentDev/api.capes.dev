@@ -20,7 +20,7 @@ const capeSchema = new Schema({
     type: {
         type: String,
         index: true,
-        enum: ["optifine"]
+        enum: ["optifine", "minecraftcapes"]
     },
     time: {
         type: Number,
