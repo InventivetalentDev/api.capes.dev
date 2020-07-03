@@ -147,6 +147,8 @@ function fetchCape(type, uuid, name) {
             return fetchOptifineCape(name);
         case "minecraftcapes":
             return fetchMinecraftcapesCape(uuid);
+        case "labymod":
+            return fetchLabyModCape(uuid);
         default:
             throw new Error("unknown cape type");
     }
@@ -207,6 +209,35 @@ function fetchMinecraftcapesCape(uuid) {
     })
 }
 
+function fetchLabyModCape(uuid) {
+    if(uuid.length <32) throw new Error("uuid too short");
+    if(uuid.length >36) throw new Error("uuid too long");
+    uuid = addUuidDashes(uuid);// y u do dis
+    let url = "https://dl.labymod.net/capes/bcd2033c-63ec-4bf8-8aca-680b22461340";
+    console.log("GET " + url);
+    return new Promise(resolve => {
+        axios({
+            method: "get",
+            url: url,
+            responseType: "arraybuffer"
+        }).then(resp => {
+            resolve(Buffer.from(resp.data, "binary"));
+        }).catch(err=>{
+            if(err.response) {
+                let resp = err.response;
+                console.warn("failed to get labymod cape for " + uuid);
+                if (resp.status === 404) {
+                    resolve(null);
+                } else {
+                    console.warn("labymod status: " + resp.status);
+                }
+            }else{
+                console.warn(err);
+            }
+        })
+    })
+}
+
 function bufferHash(buffer) {
     return hasha(buffer);
 }
@@ -218,6 +249,11 @@ function bufferDimensions(buffer) {
 function capeHash(imageHash, uuid, type, time) {
     let content = type + "_" + uuid + "_" + imageHash + "_" + time;
     return crypto.createHash("sha1").update(content).digest("hex");
+}
+
+function addUuidDashes(uuid) {
+    // https://github.com/timmyRS/add-dashes-to-uuid/blob/master/index.js
+    return uuid.substr(0,8)+"-"+uuid.substr(8,4)+"-"+uuid.substr(12,4)+"-"+uuid.substr(16,4)+"-"+uuid.substr(20)
 }
 
 module.exports = {
