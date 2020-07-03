@@ -224,7 +224,7 @@ module.exports = {
     nameFromUuid,
     uuidFromName,
     nameAndUuid,
-    fetchOptifineCape,
+    fetchCape,
     bufferHash,
     bufferDimensions,
     capeHash

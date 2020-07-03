@@ -84,7 +84,7 @@ app.get("/load/:player/:type?", function (req, res) {
 
             console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
-            util.fetchOptifineCape(name).then(capeBuffer => {
+            util.fetchCape(type, uuid, name).then(capeBuffer => {
                 let time = Math.floor(Date.now() / 1000);
                 let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
                 if (existingCape && imageHash === existingCape.imageHash) {
@@ -100,9 +100,9 @@ app.get("/load/:player/:type?", function (req, res) {
                     })
                 } else {
                     let capeHash = util.capeHash(imageHash, player, type, time);
-                    let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width:0,height:0};
+                    let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
 
-                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " "+capeSize.width+"x"+capeSize.height+")");
+                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
                     let cape = new Cape({
                         hash: capeHash,
                         player: uuid,
@@ -162,7 +162,7 @@ app.get("/history/:player/:type?", function (req, res) {
 
         let history = [];
         for (let cape of capes) {
-            if(cape.imageHash !== HAS_NO_CAPE) {
+            if (cape.imageHash !== HAS_NO_CAPE) {
                 history.push({
                     hash: cape.hash,
                     playerName: cape.playerName,
