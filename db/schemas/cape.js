@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
     , Schema = mongoose.Schema;
+const types = require("../../types");
 const capeSchema = new Schema({
     hash: {
         type: String,
@@ -20,7 +21,7 @@ const capeSchema = new Schema({
     type: {
         type: String,
         index: true,
-        enum: ["optifine", "minecraftcapes"]
+        enum: types
     },
     time: {
         type: Number,
