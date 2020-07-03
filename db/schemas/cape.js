@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 const capeSchema = new Schema({
     hash: {
         type: String,
-        index: true
+        index: true,
+        unique: true
     },
     player: {
         type: String,
