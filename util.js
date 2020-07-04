@@ -64,12 +64,12 @@ function doUuidFetch(names) {
             let time = Math.floor(Date.now() / 1000);
             let data = {};
             for (let res of result) {
-                let name = res.name.toLowerCase();
+                let name = res.name;
                 nameCache[res.id] = {
                     name: name,
                     time: time
                 };
-                uuidCache[name] = {
+                uuidCache[name.toLowerCase()] = {
                     uuid: res.id,
                     time: time
                 };
