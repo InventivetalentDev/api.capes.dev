@@ -121,6 +121,10 @@ function loadOrGetCape(type, player) {
             util.nameAndUuid(player).then(nameAndUuid => {
                 let name = nameAndUuid[0];
                 let uuid = nameAndUuid[1];
+                if (!name || !uuid) {
+                    reject("player not found");
+                    return;
+                }
 
                 console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
@@ -171,7 +175,7 @@ function loadOrGetCape(type, player) {
                 });
             }).catch(err => {
                 console.warn(err);
-                reject("failed to get username")
+                reject("failed to get player name/uuid");
             })
         });
     })

@@ -50,7 +50,7 @@ function doNameFetch(uuid) {
         }).catch(err => {
             console.warn("Failed to fetch name for " + uuid);
             console.warn(err);
-            reject(err);
+            resolve(null);
         })
     })
 }
@@ -58,44 +58,47 @@ function doNameFetch(uuid) {
 function doUuidFetch(names) {
     return new Promise((resolve, reject) => {
         let url = "https://api.mojang.com/profiles/minecraft";
-        console.log("POST " + url);
+        console.log("POST " + url + " " + names);
         axios.post(url, names).then(resp => {
             let result = resp.data;
             let time = Math.floor(Date.now() / 1000);
             let data = {};
             for (let res of result) {
                 let name = res.name;
+                let key = name.toLowerCase();
                 nameCache[res.id] = {
                     name: name,
                     time: time
                 };
-                uuidCache[name.toLowerCase()] = {
+                uuidCache[key] = {
                     uuid: res.id,
                     time: time
                 };
-                data[name] = res.id;
+                data[key] = res.id;
             }
             resolve(data);
         }).catch(err => {
             console.warn("Failed to fetch uuids");
             console.warn(err);
-            reject(err);
+            resolve(null);
         })
     })
 }
 
 function nameAndUuid(nameOrUuid) {
-    let promises = [];
-
-    if (nameOrUuid.length < 20) { // name
-        promises.push(justResolve(nameOrUuid));
-        promises.push(uuidFromName(nameOrUuid));
-    }else{ // uuid
-        promises.push(nameFromUuid(nameOrUuid));
-        promises.push(justResolve(nameOrUuid));
-    }
-
-    return Promise.all(promises);
+   return new Promise((resolve, reject) => {
+       if (nameOrUuid.length < 20) { // name
+           uuidFromName(nameOrUuid).then(uuid => {
+               let cached = nameCache[uuid];
+               resolve([cached ? cached.name : null, uuid]);
+           }).catch(reject);
+       }else{ // uuid
+           nameFromUuid(nameOrUuid).then(name=>{
+               let cached = uuidCache[name.toLowerCase()];
+               resolve([name, cached ? cached.uuid : null]);
+           })
+       }
+   })
 }
 
 function nameFromUuid(uuid) {
