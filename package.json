@@ -13,6 +13,7 @@
     "body-parser": "^1.19.0",
     "buffer-image-size": "^0.6.4",
     "express": "^4.17.1",
+    "file-type": "^14.6.2",
     "hasha": "^5.2.0",
     "mongoose": "^5.9.21",
     "tunnel-ssh": "^4.1.4",

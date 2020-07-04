@@ -27,6 +27,7 @@ const capeSchema = new Schema({
         type: Number,
         index: true
     },
+    extension: String,
     imageHash: {
         type: String,
         index: true

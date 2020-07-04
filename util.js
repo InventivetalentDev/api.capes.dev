@@ -2,6 +2,7 @@ const axios = require("axios");
 const hasha = require("hasha");
 const crypto = require("crypto");
 const bufferImageSize = require("buffer-image-size");
+const fileType = require("file-type");
 
 const nameCache = {}; // uuid -> name
 const uuidCache = {}; // name -> uuid
@@ -246,6 +247,31 @@ function bufferDimensions(buffer) {
     return bufferImageSize(buffer);
 }
 
+function bufferFileExtension(buffer, ignoreMime) {
+    return new Promise(resolve => {
+        if (!buffer) {
+            resolve(null);
+            return;
+        }
+        fileType.fromBuffer(buffer).then(info=>{
+            if (info) {
+                if(!ignoreMime && !info.mime.startsWith("image")){
+                    console.warn("File type was not an image, was " + info.mime);
+                    resolve(null);
+                } else {
+                    resolve(info.ext);
+                }
+            }else{
+                resolve(null);
+            }
+        }).catch(err=>{
+            console.warn("unable to determine file type");
+            console.warn(err);
+            resolve(null);
+        });
+    })
+}
+
 function capeHash(imageHash, uuid, type, time) {
     let content = type + "_" + uuid + "_" + imageHash + "_" + time;
     return crypto.createHash("sha1").update(content).digest("hex");
@@ -263,5 +289,6 @@ module.exports = {
     fetchCape,
     bufferHash,
     bufferDimensions,
+    bufferFileExtension,
     capeHash
 }

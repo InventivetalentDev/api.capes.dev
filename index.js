@@ -101,26 +101,28 @@ app.get("/load/:player/:type?", function (req, res) {
                 } else {
                     let capeHash = util.capeHash(imageHash, player, type, time);
                     let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
-
-                    console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
-                    let cape = new Cape({
-                        hash: capeHash,
-                        player: uuid,
-                        playerName: name,
-                        type: type,
-                        time: time,
-                        imageHash: imageHash,
-                        width: capeSize.width || 0,
-                        height: capeSize.height || 0,
-                        image: capeBuffer
-                    });
-                    cape.save(function (err, cape) {
-                        if (err) {
-                            console.warn("Failed to save cape");
-                            console.error(err);
-                            return;
-                        }
-                        sendCapeInfo(req, res, cape, true);
+                    util.bufferFileExtension(capeBuffer).then(extension=>{
+                        console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
+                        let cape = new Cape({
+                            hash: capeHash,
+                            player: uuid,
+                            playerName: name,
+                            type: type,
+                            time: time,
+                            extension: extension,
+                            imageHash: imageHash,
+                            width: capeSize.width || 0,
+                            height: capeSize.height || 0,
+                            image: capeBuffer
+                        });
+                        cape.save(function (err, cape) {
+                            if (err) {
+                                console.warn("Failed to save cape");
+                                console.error(err);
+                                return;
+                            }
+                            sendCapeInfo(req, res, cape, true);
+                        })
                     })
                 }
             });
@@ -169,6 +171,7 @@ app.get("/history/:player/:type?", function (req, res) {
                     time: cape.time,
                     width: cape.width,
                     height: cape.height,
+                    extension: cape.extension,
                     imageHash: cape.imageHash,
                     capeUrl: "https://api.capes.dev/get/" + cape.hash,
                     imageUrl: "https://api.capes.dev/img/" + cape.hash
@@ -230,6 +233,7 @@ function sendCapeInfo(req, res, cape, changed) {
         time: cape.time,
         width: cape.width,
         height: cape.height,
+        extension: cape.extension,
         imageHash: cape.imageHash === HAS_NO_CAPE ? null : cape.imageHash,
         capeUrl: cape.image ? ("https://api.capes.dev/get/" + cape.hash) : null,
         imageUrl: cape.image ? ("https://api.capes.dev/img/" + cape.hash) : null
