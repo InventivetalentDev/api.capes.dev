@@ -8,8 +8,8 @@ const cloudinary = require("cloudinary").v2;
 
 const nameCache = {}; // uuid -> name
 const uuidCache = {}; // name -> uuid
-const nameQueue = {}; // uuid -> callback(name)
-const uuidQueue = {}; // name -> callback(uuid)
+const nameQueue = {}; // uuid -> [callback(name)]
+const uuidQueue = {}; // name -> [callback(uuid)]
 
 // Cache cleanup
 setInterval(function () {
@@ -32,9 +32,9 @@ setInterval(function () {
     if (length > 0) {
         console.log("Fetching " + length + " names from uuids...");
         for (let id in nameQueue) {
-            let callback = nameQueue[id];
+            let callbacks = nameQueue[id];
             delete nameQueue[id];
-            doNameFetch(id, callback);
+            doNameFetch(id, callbacks);
         }
     }
 }, 1000);
@@ -48,7 +48,7 @@ setInterval(function () {
     }
 }, 2000);
 
-function doNameFetch(uuid, callback) {
+function doNameFetch(uuid, callbacks) {
     if(uuid.length <32) throw new Error("uuid too short");
     if(uuid.length >36) throw new Error("uuid too long");
     let url = "https://api.mojang.com/user/profiles/" + uuid + "/names";
@@ -65,7 +65,9 @@ function doNameFetch(uuid, callback) {
             uuid: uuid,
             time: time
         };
-        callback(name);
+        for (let cb of callbacks) {
+            cb(name);
+        }
     }).catch(err => {
         console.warn("Failed to fetch name for " + uuid);
         console.warn(err);
@@ -88,9 +90,11 @@ function doUuidFetch(names) {
                 uuid: res.id,
                 time: time
             };
-            let callback = uuidQueue[name];
-            if (callback) {
-                callback(res.id);
+            let callbacks = uuidQueue[name];
+            if (callbacks) {
+                for (let cb of callbacks) {
+                    cb(res.id);
+                }
             }
             delete uuidQueue[name];
         }
@@ -122,7 +126,11 @@ function nameFromUuid(uuid) {
             resolve(nameCache[uuid].name);
             return;
         }
-        nameQueue[uuid] = resolve;
+        if (!nameQueue.hasOwnProperty(uuid)) {
+            nameQueue[uuid] = [resolve];
+        } else {
+            nameQueue[uuid].push(resolve);
+        }
     })
 }
 
@@ -134,7 +142,11 @@ function uuidFromName(name) {
             resolve(uuidCache[name].uuid);
             return;
         }
-        uuidQueue[name] = resolve;
+        if (!uuidQueue.hasOwnProperty(name)) {
+            uuidQueue[name] = [resolve];
+        } else {
+            uuidQueue[name].push(resolve);
+        }
     })
 }
 

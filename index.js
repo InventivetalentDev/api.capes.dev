@@ -49,97 +49,135 @@ const SUPPORTED_TYPES = require("./types");
 const HAS_NO_CAPE = "hasN0Cape";
 
 app.get("/load/:player/:type?", function (req, res) {
+    // TODO: load all types if none is specified
     let player = req.params.player;
-    let type = req.params.type || "optifine";
+    let type = req.params.type || "all";
     if (player.length < 2 || player.length > 36) {
         res.status(400).json({error: "invalid player"});
         return;
     }
     player = player.replace(/-/g, "").toLowerCase();
 
-    if (SUPPORTED_TYPES.indexOf(type) === -1) {
-        res.status(400).json({error: type + " is not supported. (" + SUPPORTED_TYPES + ")"})
-        return;
-    }
-
-    let capeQuery = {
-        type: type
-    };
-    if (player.length < 20) { // name
-        capeQuery.playerName = player;
-    } else { // uuid
-        capeQuery.player = player;
-    }
-    Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
-        if (err) {
-            console.error(err);
-            res.status(500).json({error: "database error"});
+    if (type === "all") {
+        let promises = [];
+        for (let ty of SUPPORTED_TYPES) {
+            promises.push(loadOrGetCape(ty, player));
+        }
+        Promise.all(promises).then(capes => {
+            if (!capes) {
+                res.status(404).json({error: "not found"});
+            } else {
+                let obj = {};
+                for (let cap of capes) {
+                    obj[cap.type] = cap;
+                }
+                res.json(obj);
+            }
+        }).catch(err => {
+            console.warn(err);
+            res.status(500).json({error: err});
+        })
+    } else {
+        if (SUPPORTED_TYPES.indexOf(type) === -1) {
+            res.status(400).json({error: type + " is not supported. (" + SUPPORTED_TYPES + ")"});
             return;
         }
-        if (existingCape) {
-            if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
-                sendCapeInfo(req, res, existingCape);
+
+        loadOrGetCape(type, player).then(cape => {
+            if (!cape) {
+                res.status(404).json({error: "not found"});
+            } else {
+                res.json(cape);
+            }
+        }).catch(err => {
+            console.warn(err);
+            res.status(500).json({error: err});
+        })
+    }
+});
+
+function loadOrGetCape(type, player) {
+    return new Promise((resolve, reject) => {
+        let capeQuery = {
+            type: type
+        };
+        if (player.length < 20) { // name
+            capeQuery.playerName = player;
+        } else { // uuid
+            capeQuery.player = player;
+        }
+        Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
+            if (err) {
+                console.error(err);
+                reject("database error");
                 return;
             }
-        }
+            if (existingCape) {
+                if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
+                    resolve(makeCapeInfo(existingCape))
+                    return;
+                }
+            }
 
-        util.nameAndUuid(player).then(nameAndUuid => {
-            let name = nameAndUuid[0];
-            let uuid = nameAndUuid[1];
+            util.nameAndUuid(player).then(nameAndUuid => {
+                let name = nameAndUuid[0];
+                let uuid = nameAndUuid[1];
 
-            console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
+                console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
-            util.fetchCape(type, uuid, name).then(capeBuffer => {
-                let time = Math.floor(Date.now() / 1000);
-                let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
-                if (existingCape && imageHash === existingCape.imageHash) {
-                    console.info("Updating time of existing " + type + " cape for " + name + " (" + existingCape.hash + ")");
-                    existingCape.time = time;
-                    existingCape.save(function (err, cape) {
-                        if (err) {
-                            console.warn("Failed to save cape");
-                            console.error(err);
-                            return;
-                        }
-                        sendCapeInfo(req, res, cape, false);
-                    })
-                } else {
-                    let capeHash = util.capeHash(imageHash, player, type, time);
-                    let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
-                    util.bufferFileExtension(capeBuffer).then(extension => {
-                        console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
-                        if (capeBuffer) {
-                            console.info("Uploading " + imageHash + " to cloudinary...");
-                            util.uploadImage(imageHash, type, capeBuffer);
-                        }
-                        let cape = new Cape({
-                            hash: capeHash,
-                            player: uuid,
-                            playerName: name,
-                            type: type,
-                            time: time,
-                            extension: extension,
-                            imageHash: imageHash,
-                            width: capeSize.width || 0,
-                            height: capeSize.height || 0
-                        });
-                        cape.save(function (err, cape) {
+                util.fetchCape(type, uuid, name).then(capeBuffer => {
+                    let time = Math.floor(Date.now() / 1000);
+                    let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
+                    if (existingCape && imageHash === existingCape.imageHash) {
+                        console.info("Updating time of existing " + type + " cape for " + name + " (" + existingCape.hash + ")");
+                        existingCape.time = time;
+                        existingCape.save(function (err, cape) {
                             if (err) {
                                 console.warn("Failed to save cape");
                                 console.error(err);
                                 return;
                             }
-                            sendCapeInfo(req, res, cape, true);
+                            resolve(makeCapeInfo(cape, true, false));
                         })
-                    })
-                }
-            });
-        }).catch(err => {
-            console.warn(err);
-            res.status(500).json({error: "failed to get username"});
-        })
-    });
-});
+                    } else {
+                        let capeHash = util.capeHash(imageHash, player, type, time);
+                        let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
+                        util.bufferFileExtension(capeBuffer).then(extension => {
+                            console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
+                            if (capeBuffer) {
+                                console.info("Uploading " + imageHash + " to cloudinary...");
+                                util.uploadImage(imageHash, type, capeBuffer);
+                            }
+                            let cape = new Cape({
+                                hash: capeHash,
+                                player: uuid,
+                                playerName: name,
+                                type: type,
+                                time: time,
+                                extension: extension,
+                                imageHash: imageHash,
+                                width: capeSize.width || 0,
+                                height: capeSize.height || 0
+                            });
+                            cape.save(function (err, cape) {
+                                if (err) {
+                                    console.warn("Failed to save cape");
+                                    console.error(err);
+                                    return;
+                                }
+                                resolve(makeCapeInfo(cape, true, true));
+                            })
+                        })
+                    }
+                });
+            }).catch(err => {
+                console.warn(err);
+                reject("failed to get username")
+            })
+        });
+    })
+}
+
 
 app.get("/history/:player/:type?", function (req, res) {
     let player = req.params.player;
@@ -173,17 +211,7 @@ app.get("/history/:player/:type?", function (req, res) {
         let history = [];
         for (let cape of capes) {
             if (cape.imageHash !== HAS_NO_CAPE) {
-                history.push({
-                    hash: cape.hash,
-                    playerName: cape.playerName,
-                    time: cape.time,
-                    width: cape.width,
-                    height: cape.height,
-                    extension: cape.extension,
-                    imageHash: cape.imageHash,
-                    capeUrl: "https://api.capes.dev/get/" + cape.hash,
-                    imageUrl: "https://api.capes.dev/img/" + cape.imageHash
-                })
+                history.push(makeCapeInfo(cape, false))
             }
         }
         res.json({
@@ -245,10 +273,9 @@ app.get("/img/:hash", function (req, res) {
     })
 })
 
-function sendCapeInfo(req, res, cape, changed) {
+function makeCapeInfo(cape, message, changed) {
     let hasNoCape = cape.imageHash === HAS_NO_CAPE;
     let json = {
-        msg: hasNoCape ? "Player has no cape" : "Cape found",
         hash: cape.hash,
         player: cape.player,
         playerName: cape.playerName,
@@ -264,7 +291,14 @@ function sendCapeInfo(req, res, cape, changed) {
     if (typeof changed !== "undefined") {
         json.changed = changed;
     }
-    res.json(json);
+    if (message) {
+        json.msg = hasNoCape ? "Player has no cape" : "Cape found"
+    }
+    return json;
+}
+
+function sendCapeInfo(req, res, cape, changed) {
+    res.json(makeCapeInfo(cape, true, changed));
 }
 
 
