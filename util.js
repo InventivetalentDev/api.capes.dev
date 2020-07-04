@@ -1,8 +1,10 @@
+const config = require("./config");
 const axios = require("axios");
 const hasha = require("hasha");
 const crypto = require("crypto");
 const bufferImageSize = require("buffer-image-size");
 const fileType = require("file-type");
+const cloudinary = require("cloudinary").v2;
 
 const nameCache = {}; // uuid -> name
 const uuidCache = {}; // name -> uuid
@@ -282,6 +284,24 @@ function addUuidDashes(uuid) {
     return uuid.substr(0,8)+"-"+uuid.substr(8,4)+"-"+uuid.substr(12,4)+"-"+uuid.substr(16,4)+"-"+uuid.substr(20)
 }
 
+function uploadImage(name, type, buffer) {
+  return new Promise(resolve => {
+      cloudinary.uploader.upload_stream({
+          upload_preset: config.cloudinary.preset,
+          public_id: name,
+          tags: ["cape", type]
+      }, function (err, result) {
+          if (err) {
+              console.warn("cloudinary upload failed");
+              console.warn(err);
+              resolve(null);
+              return;
+          }
+          resolve(result);
+      }).end(buffer);
+  })
+}
+
 module.exports = {
     nameFromUuid,
     uuidFromName,
@@ -290,5 +310,6 @@ module.exports = {
     bufferHash,
     bufferDimensions,
     bufferFileExtension,
-    capeHash
+    capeHash,
+    uploadImage
 }

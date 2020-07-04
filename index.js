@@ -8,6 +8,8 @@ const server = http.Server(app);
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const fs = require("fs");
+const axios = require("axios");
+const cloudinary = require("cloudinary").v2;
 
 console.log("\n" +
     " === STARTING === \n" +
@@ -35,6 +37,9 @@ app.use("/.well-known", express.static(".well-known"));
 // Database
 require("./db/db")(mongoose, config);
 const Cape = require("./db/schemas/cape").Cape;
+
+// CDN
+cloudinary.config(config.cloudinary);
 
 app.get("/", function (req, res) {
     res.json({msg: "Hi!"});
@@ -101,8 +106,12 @@ app.get("/load/:player/:type?", function (req, res) {
                 } else {
                     let capeHash = util.capeHash(imageHash, player, type, time);
                     let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
-                    util.bufferFileExtension(capeBuffer).then(extension=>{
+                    util.bufferFileExtension(capeBuffer).then(extension => {
                         console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
+                        if (capeBuffer) {
+                            console.info("Uploading " + imageHash + " to cloudinary...");
+                            util.uploadImage(imageHash, type, capeBuffer);
+                        }
                         let cape = new Cape({
                             hash: capeHash,
                             player: uuid,
@@ -112,8 +121,7 @@ app.get("/load/:player/:type?", function (req, res) {
                             extension: extension,
                             imageHash: imageHash,
                             width: capeSize.width || 0,
-                            height: capeSize.height || 0,
-                            image: capeBuffer
+                            height: capeSize.height || 0
                         });
                         cape.save(function (err, cape) {
                             if (err) {
@@ -174,7 +182,7 @@ app.get("/history/:player/:type?", function (req, res) {
                     extension: cape.extension,
                     imageHash: cape.imageHash,
                     capeUrl: "https://api.capes.dev/get/" + cape.hash,
-                    imageUrl: "https://api.capes.dev/img/" + cape.hash
+                    imageUrl: "https://api.capes.dev/img/" + cape.imageHash
                 })
             }
         }
@@ -208,7 +216,7 @@ app.get("/img/:hash", function (req, res) {
     let hash = req.params.hash;
     hash = hash.split(".")[0]; // Remove potential file extensions
 
-    Cape.findOne({hash: hash}, "image", function (err, cape) {
+    Cape.findOne({imageHash: hash}, "hash imageHash extension", function (err, cape) {
         if (err) {
             console.error(err);
             res.status(500).json({error: "database error"});
@@ -217,15 +225,30 @@ app.get("/img/:hash", function (req, res) {
         if (!cape) {
             res.status(404).json({error: "not found"});
         } else {
-            res.header("Content-Type", "image/png");
-            res.send(cape.image);
+            let url = "https://res.cloudinary.com/" + config.cloudinary.cloud_name + "/image/upload/capes/" + cape.imageHash + "." + cape.extension;
+            res.header("X-Image-Location", url);
+            axios({
+                method: "get",
+                url: url,
+                responseType: "stream"
+            }).then(resp => {
+                resp.data.pipe(res);
+            }).catch(err => {
+                if (err.response.status === 404) {
+                    res.status(404).json({error: "cape image not found"});
+                } else {
+                    console.warn(err);
+                    res.status(500).json({error: "failed to load cape image"});
+                }
+            })
         }
     })
 })
 
 function sendCapeInfo(req, res, cape, changed) {
+    let hasNoCape = cape.imageHash === HAS_NO_CAPE;
     let json = {
-        msg: cape.image ? "Cape found" : "Player has no cape",
+        msg: hasNoCape ? "Player has no cape" : "Cape found",
         hash: cape.hash,
         player: cape.player,
         playerName: cape.playerName,
@@ -234,9 +257,9 @@ function sendCapeInfo(req, res, cape, changed) {
         width: cape.width,
         height: cape.height,
         extension: cape.extension,
-        imageHash: cape.imageHash === HAS_NO_CAPE ? null : cape.imageHash,
-        capeUrl: cape.image ? ("https://api.capes.dev/get/" + cape.hash) : null,
-        imageUrl: cape.image ? ("https://api.capes.dev/img/" + cape.hash) : null
+        imageHash: hasNoCape ? null : cape.imageHash,
+        capeUrl: hasNoCape ? null : ("https://api.capes.dev/get/" + cape.hash),
+        imageUrl: hasNoCape ? null : ("https://api.capes.dev/img/" + cape.imageHash)
     };
     if (typeof changed !== "undefined") {
         json.changed = changed;

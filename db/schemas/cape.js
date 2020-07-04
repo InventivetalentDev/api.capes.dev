@@ -33,7 +33,6 @@ const capeSchema = new Schema({
         index: true
     },
     width: Number,
-    height: Number,
-    image: Buffer
+    height: Number
 })
 module.exports.Cape = mongoose.model("Cape", capeSchema);
