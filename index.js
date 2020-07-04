@@ -49,7 +49,6 @@ const SUPPORTED_TYPES = require("./types");
 const HAS_NO_CAPE = "hasN0Cape";
 
 app.get("/load/:player/:type?", function (req, res) {
-    // TODO: load all types if none is specified
     let player = req.params.player;
     let type = req.params.type || "all";
     if (player.length < 2 || player.length > 36) {
@@ -181,21 +180,22 @@ function loadOrGetCape(type, player) {
 
 app.get("/history/:player/:type?", function (req, res) {
     let player = req.params.player;
-    let type = req.params.type || "optifine";
+    let type = req.params.type || "all";
     if (player.length < 2 || player.length > 36) {
         res.status(400).json({error: "invalid player"});
         return;
     }
     player = player.replace(/-/g, "").toLowerCase();
 
-    if (SUPPORTED_TYPES.indexOf(type) === -1) {
+    if (type !== "all" && SUPPORTED_TYPES.indexOf(type) === -1) {
         res.status(400).json({error: type + " is not supported. (" + SUPPORTED_TYPES + ")"})
         return;
     }
 
-    let capeQuery = {
-        type: type
-    };
+    let capeQuery = {};
+    if (type !== "all") {
+        capeQuery.type = type;
+    }
     if (player.length < 20) { // name
         capeQuery.playerName = player;
     } else { // uuid
