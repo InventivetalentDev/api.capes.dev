@@ -35,13 +35,14 @@ function doNameFetch(uuid) {
         console.log("GET " + url);
         axios.get(url).then(resp => {
             let names = resp.data;
-            let name = names[names.length - 1].name.toLowerCase();
+            let name = names[names.length - 1].name;
+            let key = name.toLowerCase();
             let time = Math.floor(Date.now() / 1000);
             nameCache[uuid] = {
                 name: name,
                 time: time
             };
-            uuidCache[name] = {
+            uuidCache[key] = {
                 uuid: uuid,
                 time: time
             };
