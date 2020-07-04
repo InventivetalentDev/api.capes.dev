@@ -96,7 +96,7 @@ app.get("/load/:player/:type?", function (req, res) {
                             console.error(err);
                             return;
                         }
-                        sendCapeInfo(req, res, cape);
+                        sendCapeInfo(req, res, cape, false);
                     })
                 } else {
                     let capeHash = util.capeHash(imageHash, player, type, time);
@@ -120,7 +120,7 @@ app.get("/load/:player/:type?", function (req, res) {
                             console.error(err);
                             return;
                         }
-                        sendCapeInfo(req, res, cape);
+                        sendCapeInfo(req, res, cape, true);
                     })
                 }
             });
@@ -220,8 +220,8 @@ app.get("/img/:hash", function (req, res) {
     })
 })
 
-function sendCapeInfo(req, res, cape) {
-    res.json({
+function sendCapeInfo(req, res, cape, changed) {
+    let json = {
         msg: cape.image ? "Cape found" : "Player has no cape",
         hash: cape.hash,
         player: cape.player,
@@ -233,7 +233,11 @@ function sendCapeInfo(req, res, cape) {
         imageHash: cape.imageHash === HAS_NO_CAPE ? null : cape.imageHash,
         capeUrl: cape.image ? ("https://api.capes.dev/get/" + cape.hash) : null,
         imageUrl: cape.image ? ("https://api.capes.dev/img/" + cape.hash) : null
-    })
+    };
+    if (typeof changed !== "undefined") {
+        json.changed = changed;
+    }
+    res.json(json);
 }
 
 
