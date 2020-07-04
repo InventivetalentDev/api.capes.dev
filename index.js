@@ -101,9 +101,9 @@ function loadOrGetCape(type, player) {
             type: type
         };
         if (player.length < 20) { // name
-            capeQuery.playerName = player;
+            capeQuery.lowerPlayerName = player.toLowerCase();
         } else { // uuid
-            capeQuery.player = player;
+            capeQuery.player = player.toLowerCase();
         }
         Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
             if (err) {
@@ -153,8 +153,9 @@ function loadOrGetCape(type, player) {
                             }
                             let cape = new Cape({
                                 hash: capeHash,
-                                player: uuid,
+                                player: uuid.toLowerCase(),
                                 playerName: name,
+                                lowerPlayerName: name.toLowerCase(),
                                 type: type,
                                 time: time,
                                 extension: extension,
@@ -201,9 +202,9 @@ app.get("/history/:player/:type?", function (req, res) {
         capeQuery.type = type;
     }
     if (player.length < 20) { // name
-        capeQuery.playerName = player;
+        capeQuery.lowerPlayerName = player.toLowerCase();
     } else { // uuid
-        capeQuery.player = player;
+        capeQuery.player = player.toLowerCase();
     }
     Cape.find(capeQuery).sort({time: -1}).exec(function (err, capes) {
         if (err) {

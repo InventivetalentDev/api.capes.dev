@@ -13,6 +13,12 @@ const capeSchema = new Schema({
         minLength: 32,
         maxLength: 32
     },
+    lowerPlayerName: {
+        type: String,
+        index: true,
+        minLength: 2,
+        maxLength: 16
+    },
     playerName: {
         type: String,
         minLength: 2,
