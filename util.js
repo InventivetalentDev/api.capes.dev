@@ -5,11 +5,12 @@ const crypto = require("crypto");
 const bufferImageSize = require("buffer-image-size");
 const fileType = require("file-type");
 const cloudinary = require("cloudinary").v2;
+const JobQueue = require("jobqu");
 
 const nameCache = {}; // uuid -> name
 const uuidCache = {}; // name -> uuid
-const nameQueue = {}; // uuid -> [callback(name)]
-const uuidQueue = {}; // name -> [callback(uuid)]
+const nameQueue = new JobQueue(doNameFetch, 1000)
+const uuidQueue = new JobQueue(doUuidFetch, 2000, -1, true);
 
 // Cache cleanup
 setInterval(function () {
@@ -26,81 +27,59 @@ setInterval(function () {
     }
 }, 60000);
 
-// Name fetcher
-setInterval(function () {
-    let length = Object.keys(nameQueue).length;
-    if (length > 0) {
-        console.log("Fetching " + length + " names from uuids...");
-        for (let id in nameQueue) {
-            let callbacks = nameQueue[id];
-            delete nameQueue[id];
-            doNameFetch(id, callbacks);
-        }
-    }
-}, 1000);
-// UUID fetcher
-setInterval(function () {
-    let keys = Object.keys(uuidQueue);
-    let length = keys.length;
-    if (length > 0) {
-        console.log("Fetching " + length + " uuids from names...");
-        doUuidFetch(keys);
-    }
-}, 2000);
-
-function doNameFetch(uuid, callbacks) {
+function doNameFetch(uuid) {
     if(uuid.length <32) throw new Error("uuid too short");
     if(uuid.length >36) throw new Error("uuid too long");
-    let url = "https://api.mojang.com/user/profiles/" + uuid + "/names";
-    console.log("GET " + url);
-    axios.get(url).then(resp => {
-        let names = resp.data;
-        let name = names[names.length - 1].name.toLowerCase();
-        let time = Math.floor(Date.now() / 1000);
-        nameCache[uuid] = {
-            name: name,
-            time: time
-        };
-        uuidCache[name] = {
-            uuid: uuid,
-            time: time
-        };
-        for (let cb of callbacks) {
-            cb(name);
-        }
-    }).catch(err => {
-        console.warn("Failed to fetch name for " + uuid);
-        console.warn(err);
-    })
-}
-
-function doUuidFetch(names) {
-    let url = "https://api.mojang.com/profiles/minecraft";
-    console.log("POST " + url);
-    axios.post(url, names).then(resp => {
-        let result = resp.data;
-        let time = Math.floor(Date.now() / 1000);
-        for (let res of result) {
-            let name = res.name.toLowerCase();
-            nameCache[res.id] = {
+    return new Promise((resolve, reject) =>{
+        let url = "https://api.mojang.com/user/profiles/" + uuid + "/names";
+        console.log("GET " + url);
+        axios.get(url).then(resp => {
+            let names = resp.data;
+            let name = names[names.length - 1].name.toLowerCase();
+            let time = Math.floor(Date.now() / 1000);
+            nameCache[uuid] = {
                 name: name,
                 time: time
             };
             uuidCache[name] = {
-                uuid: res.id,
+                uuid: uuid,
                 time: time
             };
-            let callbacks = uuidQueue[name];
-            if (callbacks) {
-                for (let cb of callbacks) {
-                    cb(res.id);
-                }
+            resolve(name);
+        }).catch(err => {
+            console.warn("Failed to fetch name for " + uuid);
+            console.warn(err);
+            reject(err);
+        })
+    })
+}
+
+function doUuidFetch(names) {
+    return new Promise((resolve, reject) => {
+        let url = "https://api.mojang.com/profiles/minecraft";
+        console.log("POST " + url);
+        axios.post(url, names).then(resp => {
+            let result = resp.data;
+            let time = Math.floor(Date.now() / 1000);
+            let data = {};
+            for (let res of result) {
+                let name = res.name.toLowerCase();
+                nameCache[res.id] = {
+                    name: name,
+                    time: time
+                };
+                uuidCache[name] = {
+                    uuid: res.id,
+                    time: time
+                };
+                data[name] = res.id;
             }
-            delete uuidQueue[name];
-        }
-    }).catch(err => {
-        console.warn("Failed to fetch uuids");
-        console.warn(err);
+            resolve(data);
+        }).catch(err => {
+            console.warn("Failed to fetch uuids");
+            console.warn(err);
+            reject(err);
+        })
     })
 }
 
@@ -126,11 +105,10 @@ function nameFromUuid(uuid) {
             resolve(nameCache[uuid].name);
             return;
         }
-        if (!nameQueue.hasOwnProperty(uuid)) {
-            nameQueue[uuid] = [resolve];
-        } else {
-            nameQueue[uuid].push(resolve);
-        }
+        nameQueue.add(uuid).then(name => resolve(name)).catch(err =>{
+            console.warn(err);
+            resolve(null);
+        });
     })
 }
 
@@ -142,11 +120,10 @@ function uuidFromName(name) {
             resolve(uuidCache[name].uuid);
             return;
         }
-        if (!uuidQueue.hasOwnProperty(name)) {
-            uuidQueue[name] = [resolve];
-        } else {
-            uuidQueue[name].push(resolve);
-        }
+        uuidQueue.add(name).then(uuid => resolve(uuid)).catch(err =>{
+            console.warn(err);
+            resolve(null);
+        });
     })
 }
 
