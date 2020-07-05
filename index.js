@@ -313,6 +313,7 @@ function makeCapeInfo(cape, message, changed) {
         width: cape.width,
         height: cape.height,
         extension: cape.extension,
+        exists: !hasNoCape,
         imageHash: hasNoCape ? null : cape.imageHash,
         capeUrl: hasNoCape ? null : ("https://api.capes.dev/get/" + cape.hash),
         imageUrl: hasNoCape ? null : ("https://api.capes.dev/img/" + cape.imageHash)
