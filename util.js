@@ -209,7 +209,7 @@ function fetchLabyModCape(uuid) {
     if(uuid.length <32) throw new Error("uuid too short");
     if(uuid.length >36) throw new Error("uuid too long");
     uuid = addUuidDashes(uuid);// y u do dis
-    let url = "https://dl.labymod.net/capes/bcd2033c-63ec-4bf8-8aca-680b22461340";
+    let url = "https://dl.labymod.net/capes/" + uuid;
     console.log("GET " + url);
     return new Promise(resolve => {
         axios({
