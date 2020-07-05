@@ -74,7 +74,7 @@ app.get("/load/:player/:type?", function (req, res) {
             }
         }).catch(err => {
             console.warn(err);
-            res.status(500).json({error: err});
+            res.status(err.code).json(err);
         })
     } else {
         if (SUPPORTED_TYPES.indexOf(type) === -1) {
