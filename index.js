@@ -49,6 +49,20 @@ const SUPPORTED_TYPES = require("./types");
 const COORDINATES = require("./coordinates");
 const HAS_NO_CAPE = "hasN0Cape";
 
+const LOADERS = {};
+for (let type of SUPPORTED_TYPES) {
+    let loader = require("./loaders/" + type);
+    LOADERS[type] = new loader();
+}
+
+function fetchCape(type, uuid, name) {
+    if (LOADERS.hasOwnProperty(type)) {
+        return LOADERS[type].fetchCape(name, uuid);
+    }else{
+        throw new Error("Unknown cape type " + type);
+    }
+}
+
 app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
     let type = req.params.type || "all";
@@ -129,7 +143,7 @@ function loadOrGetCape(type, player) {
 
                 console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
-                util.fetchCape(type, uuid, name).then(capeBuffer => {
+                fetchCape(type, uuid, name).then(capeBuffer => {
                     let time = Math.floor(Date.now() / 1000);
                     let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
                     if (existingCape && imageHash === existingCape.imageHash) {
