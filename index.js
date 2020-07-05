@@ -162,13 +162,14 @@ function loadOrGetCape(type, player) {
                         let capeSize = capeBuffer ? util.bufferDimensions(capeBuffer) : {width: 0, height: 0};
                         util.bufferFileExtension(capeBuffer).then(extension => {
                             console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
+                            let imagePromises = [];
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
-                                util.uploadImage(imageHash, type, capeBuffer);
+                                imagePromises.push(util.uploadImage(imageHash, type, capeBuffer));
                                 if (COORDINATES.hasOwnProperty(type)) {
                                     for (let transform in COORDINATES[type]) {
                                         if(transform==="dynamic")continue;
-                                        util.uploadTransformImage(imageHash, type, transform, COORDINATES[type][transform], COORDINATES[type].dynamic, capeSize, capeBuffer);
+                                        imagePromises.push(util.uploadTransformImage(imageHash, type, transform, COORDINATES[type][transform], COORDINATES[type].dynamic, capeSize, capeBuffer));
                                     }
                                 }
                             }
@@ -190,7 +191,11 @@ function loadOrGetCape(type, player) {
                                     console.error(err);
                                     return;
                                 }
-                                resolve(makeCapeInfo(cape, true, true));
+                                Promise.all(imagePromises).then(()=>{
+                                    setTimeout(() => {
+                                        resolve(makeCapeInfo(cape, true, true));
+                                    }, 500);
+                                })
                             })
                         })
                     }
