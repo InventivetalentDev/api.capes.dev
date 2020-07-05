@@ -1,4 +1,5 @@
 const CapeLoader = require("./base");
+
 class OptifineCapeLoader extends CapeLoader {
 
     constructor() {
@@ -11,4 +12,5 @@ class OptifineCapeLoader extends CapeLoader {
     }
 
 }
+
 module.exports = OptifineCapeLoader;

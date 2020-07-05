@@ -58,7 +58,7 @@ for (let type of SUPPORTED_TYPES) {
 function fetchCape(type, uuid, name) {
     if (LOADERS.hasOwnProperty(type)) {
         return LOADERS[type].fetchCape(name, uuid);
-    }else{
+    } else {
         throw new Error("Unknown cape type " + type);
     }
 }
@@ -123,7 +123,7 @@ function loadOrGetCape(type, player) {
         Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
             if (err) {
                 console.error(err);
-                reject({code:500,error:"database error"});
+                reject({code: 500, error: "database error"});
                 return;
             }
             if (existingCape) {
@@ -137,7 +137,7 @@ function loadOrGetCape(type, player) {
                 let name = nameAndUuid[0];
                 let uuid = nameAndUuid[1];
                 if (!name || !uuid) {
-                    reject({code:404,error:"player not found"});
+                    reject({code: 404, error: "player not found"});
                     return;
                 }
 
@@ -168,7 +168,7 @@ function loadOrGetCape(type, player) {
                                 imagePromises.push(util.uploadImage(imageHash, type, capeBuffer));
                                 if (COORDINATES.hasOwnProperty(type)) {
                                     for (let transform in COORDINATES[type]) {
-                                        if(transform==="dynamic")continue;
+                                        if (transform === "dynamic") continue;
                                         imagePromises.push(util.uploadTransformImage(imageHash, type, transform, COORDINATES[type][transform], COORDINATES[type].dynamic, capeSize, capeBuffer));
                                     }
                                 }
@@ -191,7 +191,7 @@ function loadOrGetCape(type, player) {
                                     console.error(err);
                                     return;
                                 }
-                                Promise.all(imagePromises).then(()=>{
+                                Promise.all(imagePromises).then(() => {
                                     setTimeout(() => {
                                         resolve(makeCapeInfo(cape, true, true));
                                     }, 500);
@@ -202,7 +202,7 @@ function loadOrGetCape(type, player) {
                 });
             }).catch(err => {
                 console.warn(err);
-                reject({code:500,error:"failed to get player name/uuid"});
+                reject({code: 500, error: "failed to get player name/uuid"});
             })
         });
     })
@@ -340,7 +340,7 @@ function makeCapeInfo(cape, message, changed) {
     if (!hasNoCape) {
         if (COORDINATES.hasOwnProperty(cape.type)) {
             for (let transform in COORDINATES[cape.type]) {
-                if(transform==="dynamic")continue;
+                if (transform === "dynamic") continue;
                 json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
             }
         }

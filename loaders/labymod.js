@@ -1,5 +1,6 @@
 const CapeLoader = require("./base");
 const util = require("../util")
+
 class LabymodCapeLoader extends CapeLoader {
 
     constructor() {
@@ -13,4 +14,5 @@ class LabymodCapeLoader extends CapeLoader {
     }
 
 }
+
 module.exports = LabymodCapeLoader;
