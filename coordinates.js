@@ -1,4 +1,8 @@
 module.exports = {
+    "minecraft": {
+        dynamic: true,
+        front: [1 / 64, 1 / 32, 10 / 64, 16 / 32]
+    },
     "optifine": {
         dynamic: true,
         front: [1 / 46, 1 / 22, 10 / 46, 16 / 22]

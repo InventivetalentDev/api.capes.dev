@@ -1,1 +1,1 @@
-module.exports = ["optifine", "minecraftcapes", "labymod"];
+module.exports = ["minecraft","optifine", "minecraftcapes", "labymod"];
