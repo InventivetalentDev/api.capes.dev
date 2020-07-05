@@ -294,12 +294,13 @@ function uploadTransformImage(name, type, transform, transformation, dynamic, si
             // calculate based on dimensions
             options.transformation = {
                 gravity: "north_west",
-                x: size.width*transformation[0],
-                y: size.height*transformation[1],
-                width: size.width*transformation[2],
-                height: size.height*transformation[3],
+                x: Math.max(0, Math.round(size.width*transformation[0])),
+                y: Math.max(0, Math.round(size.height*transformation[1])),
+                width: Math.min(size.width, Math.round(size.width*transformation[2])),
+                height: Math.min(size.height, Math.round(size.height*transformation[3])),
                 crop: "crop"
             };
+            console.log(options.transformation);
         }
         cloudinary.uploader.upload_stream(options, function (err, result) {
             if (err) {
