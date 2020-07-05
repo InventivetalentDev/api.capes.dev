@@ -153,7 +153,8 @@ function loadOrGetCape(type, player) {
                                 util.uploadImage(imageHash, type, capeBuffer);
                                 if (COORDINATES.hasOwnProperty(type)) {
                                     for (let transform in COORDINATES[type]) {
-                                        util.uploadTransformImage(imageHash, type, transform, capeBuffer);
+                                        if(transform==="dynamic")continue;
+                                        util.uploadTransformImage(imageHash, type, transform, COORDINATES[type][transform], COORDINATES[type].dynamic, capeSize, capeBuffer);
                                     }
                                 }
                             }
@@ -319,6 +320,7 @@ function makeCapeInfo(cape, message, changed) {
     if (!hasNoCape) {
         if (COORDINATES.hasOwnProperty(cape.type)) {
             for (let transform in COORDINATES[cape.type]) {
+                if(transform==="dynamic")continue;
                 json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
             }
         }

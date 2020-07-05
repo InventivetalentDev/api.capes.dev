@@ -277,14 +277,31 @@ function addUuidDashes(uuid) {
     return uuid.substr(0,8)+"-"+uuid.substr(8,4)+"-"+uuid.substr(12,4)+"-"+uuid.substr(16,4)+"-"+uuid.substr(20)
 }
 
-function uploadTransformImage(name, type, transform, buffer) {
+function uploadTransformImage(name, type, transform, transformation, dynamic, size, buffer) {
+    if (typeof transformation === "function") {
+        transformation = transformation(size);
+    }
     return new Promise(resolve => {
-        cloudinary.uploader.upload_stream({
+        let options = {
             upload_preset: config.cloudinary.preset,
             public_id: name + "_" + transform,
-            tags: ["cape", type, transform],
-            transformation: "cape_" + transform + "_" + type
-        }, function (err, result) {
+            tags: ["cape", type, transform]
+        };
+        if (!dynamic) {
+            // use cloudinary preset
+            options.transformation = "cape_" + transform + "_" + type;
+        } else {
+            // calculate based on dimensions
+            options.transformation = {
+                gravity: "north_west",
+                x: size.width*transformation[0],
+                y: size.height*transformation[1],
+                width: size.width*transformation[2],
+                height: size.height*transformation[3],
+                crop: "crop"
+            };
+        }
+        cloudinary.uploader.upload_stream(options, function (err, result) {
             if (err) {
                 console.warn("cloudinary upload failed");
                 console.warn(err);
@@ -293,7 +310,7 @@ function uploadTransformImage(name, type, transform, buffer) {
             }
             resolve(result);
         }).end(buffer);
-    })
+    });
 }
 
 function uploadImage(name, type, buffer) {
