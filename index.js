@@ -90,7 +90,7 @@ app.get("/load/:player/:type?", function (req, res) {
             }
         }).catch(err => {
             console.warn(err);
-            res.status(500).json({error: err});
+            res.status(err.code).json(err);
         })
     }
 });
@@ -108,7 +108,7 @@ function loadOrGetCape(type, player) {
         Cape.findOne(capeQuery).sort({time: -1}).exec(function (err, existingCape) {
             if (err) {
                 console.error(err);
-                reject("database error");
+                reject({code:500,error:"database error"});
                 return;
             }
             if (existingCape) {
@@ -122,7 +122,7 @@ function loadOrGetCape(type, player) {
                 let name = nameAndUuid[0];
                 let uuid = nameAndUuid[1];
                 if (!name || !uuid) {
-                    reject("player not found");
+                    reject({code:404,error:"player not found"});
                     return;
                 }
 
@@ -176,7 +176,7 @@ function loadOrGetCape(type, player) {
                 });
             }).catch(err => {
                 console.warn(err);
-                reject("failed to get player name/uuid");
+                reject({code:500,error:"failed to get player name/uuid"});
             })
         });
     })
