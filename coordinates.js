@@ -15,4 +15,8 @@ module.exports = {
         dynamic: true,
         front: [1 / 64, 1 / 32, 10 / 64, 16 / 32]
     },
+    "5zig": {
+        dynamic: true,
+        front: [1 / 64, 1 / 32, 10 / 64, 16 / 32]
+    },
 }
