@@ -1,6 +1,7 @@
 module.exports = {
     "optifine": {
-        front: [2, 2, 20, 32]
+        dynamic: true,
+        front: [1/46, 1/22, 10/46,16/22]
     },
     "labymod": {
         dynamic: true, // coordinates are percentage of image dimensions

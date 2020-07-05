@@ -300,8 +300,8 @@ function uploadTransformImage(name, type, transform, transformation, dynamic, si
                 height: Math.min(size.height, Math.round(size.height*transformation[3])),
                 crop: "crop"
             };
-            console.log(options.transformation);
         }
+        console.log(options.transformation);
         cloudinary.uploader.upload_stream(options, function (err, result) {
             if (err) {
                 console.warn("cloudinary upload failed");
