@@ -277,6 +277,25 @@ function addUuidDashes(uuid) {
     return uuid.substr(0,8)+"-"+uuid.substr(8,4)+"-"+uuid.substr(12,4)+"-"+uuid.substr(16,4)+"-"+uuid.substr(20)
 }
 
+function uploadTransformImage(name, type, transform, buffer) {
+    return new Promise(resolve => {
+        cloudinary.uploader.upload_stream({
+            upload_preset: config.cloudinary.preset,
+            public_id: name + "_" + transform,
+            tags: ["cape", type, transform],
+            transformation: "cape_" + transform + "_" + type
+        }, function (err, result) {
+            if (err) {
+                console.warn("cloudinary upload failed");
+                console.warn(err);
+                resolve(null);
+                return;
+            }
+            resolve(result);
+        }).end(buffer);
+    })
+}
+
 function uploadImage(name, type, buffer) {
   return new Promise(resolve => {
       cloudinary.uploader.upload_stream({
@@ -304,5 +323,6 @@ module.exports = {
     bufferDimensions,
     bufferFileExtension,
     capeHash,
-    uploadImage
+    uploadImage,
+    uploadTransformImage
 }

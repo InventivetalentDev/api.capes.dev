@@ -46,6 +46,7 @@ app.get("/", function (req, res) {
 });
 
 const SUPPORTED_TYPES = require("./types");
+const COORDINATES = require("./coordinates");
 const HAS_NO_CAPE = "hasN0Cape";
 
 app.get("/load/:player/:type?", function (req, res) {
@@ -150,6 +151,11 @@ function loadOrGetCape(type, player) {
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
                                 util.uploadImage(imageHash, type, capeBuffer);
+                                if (COORDINATES.hasOwnProperty(type)) {
+                                    for (let transform in COORDINATES[type]) {
+                                        util.uploadTransformImage(imageHash, type, transform, capeBuffer);
+                                    }
+                                }
                             }
                             let cape = new Cape({
                                 hash: capeHash,
@@ -249,6 +255,19 @@ app.get("/img/:hash", function (req, res) {
     let hash = req.params.hash;
     hash = hash.split(".")[0]; // Remove potential file extensions
 
+    findAndSendCapeImage(req, res, hash);
+})
+
+app.get("/img/:transform/:hash", function (req, res) {
+    let transform = req.params.transform;
+    let hash = req.params.hash;
+    hash = hash.split(".")[0]; // Remove potential file extensions
+
+    findAndSendCapeImage(req, res, hash, transform);
+})
+
+
+function findAndSendCapeImage(req, res, hash, transform) {
     Cape.findOne({imageHash: hash}, "hash imageHash extension", function (err, cape) {
         if (err) {
             console.error(err);
@@ -258,7 +277,11 @@ app.get("/img/:hash", function (req, res) {
         if (!cape) {
             res.status(404).json({error: "not found"});
         } else {
-            let url = "https://res.cloudinary.com/" + config.cloudinary.cloud_name + "/image/upload/capes/" + cape.imageHash + "." + cape.extension;
+            let file = cape.imageHash;
+            if (transform) {
+                file += "_" + transform;
+            }
+            let url = "https://res.cloudinary.com/" + config.cloudinary.cloud_name + "/image/upload/capes/" + file + "." + cape.extension;
             res.header("X-Image-Location", url);
             axios({
                 method: "get",
@@ -276,7 +299,7 @@ app.get("/img/:hash", function (req, res) {
             })
         }
     })
-})
+}
 
 function makeCapeInfo(cape, message, changed) {
     let hasNoCape = cape.imageHash === HAS_NO_CAPE;
@@ -293,6 +316,13 @@ function makeCapeInfo(cape, message, changed) {
         capeUrl: hasNoCape ? null : ("https://api.capes.dev/get/" + cape.hash),
         imageUrl: hasNoCape ? null : ("https://api.capes.dev/img/" + cape.imageHash)
     };
+    if (!hasNoCape) {
+        if (COORDINATES.hasOwnProperty(cape.type)) {
+            for (let transform in COORDINATES[cape.type]) {
+                json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
+            }
+        }
+    }
     if (typeof changed !== "undefined") {
         json.changed = changed;
     }
