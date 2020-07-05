@@ -4,6 +4,6 @@ module.exports = {
     },
     "labymod": {
         dynamic: true, // coordinates are percentage of image dimensions
-        front: [1 / 22, 0, 0.5, 1]
+        front: [1 / 22, 0, 0.485, 1] // Why are you so weird?
     }
 }
