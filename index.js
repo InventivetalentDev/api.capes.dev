@@ -282,7 +282,7 @@ function findAndSendCapeImage(req, res, hash, transform) {
             if (transform) {
                 file += "_" + transform;
             }
-            let url = "https://res.cloudinary.com/" + config.cloudinary.cloud_name + "/image/upload/capes/" + file + "." + cape.extension;
+            let url = util.imageUrl(file);
             res.header("X-Image-Location", url);
             axios({
                 method: "get",

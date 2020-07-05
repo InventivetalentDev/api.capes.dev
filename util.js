@@ -332,6 +332,10 @@ function uploadImage(name, type, buffer) {
   })
 }
 
+function imageUrl(name) {
+    return cloudinary.url("capes/" + name);
+}
+
 module.exports = {
     nameFromUuid,
     uuidFromName,
@@ -342,5 +346,6 @@ module.exports = {
     bufferFileExtension,
     capeHash,
     uploadImage,
-    uploadTransformImage
+    uploadTransformImage,
+    imageUrl
 }
