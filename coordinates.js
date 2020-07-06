@@ -9,7 +9,7 @@ module.exports = {
     },
     "labymod": {
         dynamic: true, // coordinates are percentage of image dimensions
-        front: [1 / 22, 0, 0.485, 1] // Why are you so weird?
+        front: [1 / 22, 1 / 17, 10 / 22, 16 / 16]
     },
     "minecraftcapes": {
         dynamic: true,
