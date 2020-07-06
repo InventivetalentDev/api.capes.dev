@@ -41,6 +41,9 @@ const Cape = require("./db/schemas/cape").Cape;
 // CDN
 cloudinary.config(config.cloudinary);
 
+// Requests
+axios.defaults.headers.common["User-Agent"] = "capes.dev (+https://capes.dev)";
+
 app.get("/", function (req, res) {
     res.json({msg: "Hi!"});
 });
