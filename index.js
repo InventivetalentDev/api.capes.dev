@@ -49,7 +49,6 @@ app.get("/", function (req, res) {
 });
 
 const SUPPORTED_TYPES = require("./types");
-const COORDINATES = require("./coordinates");
 const HAS_NO_CAPE = "hasN0Cape";
 
 const LOADERS = {};
@@ -144,9 +143,14 @@ function loadOrGetCape(type, player) {
                     return;
                 }
 
+                if (!LOADERS.hasOwnProperty(type)) {
+                    throw new Error("Unknown cape type " + type);
+                }
+                let loader = LOADERS[type];
+
                 console.info("Loading " + type + " cape for " + name + " (" + uuid + ")...");
 
-                fetchCape(type, uuid, name).then(capeBuffer => {
+                loader.fetchCape(name, uuid).then(capeBuffer => {
                     let time = Math.floor(Date.now() / 1000);
                     let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
                     if (existingCape && imageHash === existingCape.imageHash) {
@@ -169,11 +173,10 @@ function loadOrGetCape(type, player) {
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
                                 imagePromises.push(util.uploadImage(imageHash, type, capeBuffer));
-                                if (COORDINATES.hasOwnProperty(type)) {
-                                    for (let transform in COORDINATES[type]) {
-                                        if (transform === "dynamic") continue;
-                                        imagePromises.push(util.uploadTransformImage(imageHash, type, transform, COORDINATES[type][transform], COORDINATES[type].dynamic, capeSize, capeBuffer));
-                                    }
+                                let coordinates = loader.coordinates();
+                                let dynamicCoordinates = loader.dynamicCoordinates();
+                                for (let transform in coordinates) {
+                                    imagePromises.push(util.uploadTransformImage(imageHash, type, transform, coordinates[transform], dynamicCoordinates, capeSize, capeBuffer));
                                 }
                             }
                             let cape = new Cape({
@@ -341,9 +344,10 @@ function makeCapeInfo(cape, message, changed) {
         imageUrl: hasNoCape ? null : ("https://api.capes.dev/img/" + cape.imageHash)
     };
     if (!hasNoCape) {
-        if (COORDINATES.hasOwnProperty(cape.type)) {
-            for (let transform in COORDINATES[cape.type]) {
-                if (transform === "dynamic") continue;
+        let loader = LOADERS[cape.type];
+        if (loader) {
+            let coordinates = loader.coordinates();
+            for (let transform in coordinates) {
                 json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
             }
         }

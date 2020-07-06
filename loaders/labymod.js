@@ -13,6 +13,12 @@ class LabymodCapeLoader extends CapeLoader {
         return this.loadCapeImage("https://dl.labymod.net/capes/" + uuid)
     }
 
+    coordinates() {
+        return {
+            front: [1 / 22, 1 / 17, 10 / 22, 16 / 16]
+        };
+    }
+
 }
 
 module.exports = LabymodCapeLoader;

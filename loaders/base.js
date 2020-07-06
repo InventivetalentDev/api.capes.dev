@@ -46,6 +46,16 @@ class CapeLoader {
         })
     }
 
+    dynamicCoordinates() {
+        return true;
+    }
+
+    coordinates() {
+        return {
+            front: [1 / 64, 1 / 32, 10 / 64, 16 / 32]
+        }
+    }
+
 }
 
 module.exports = CapeLoader;
