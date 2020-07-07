@@ -65,6 +65,44 @@ function fetchCape(type, uuid, name) {
     }
 }
 
+app.get("/stats", function (req, res) {
+    Cape.count({}, function (err, count) {
+        if (err) {
+            console.error(err);
+            res.json({code: 500, error: "database error"});
+            return;
+        }
+
+        Cape.find().distinct("player", function (err, players) {
+            if (err) {
+                console.error(err);
+                res.json({code: 500, error: "database error"});
+                return;
+            }
+            let distinct = players.length;
+
+            Cape.aggregate([{$group: {_id: '$type', count: {$sum: 1}}}], function (err, perType) {
+                if (err) {
+                    console.error(err);
+                    res.json({code: 500, error: "database error"});
+                    return;
+                }
+                let types = {};
+                for (let t of perType) {
+                    types[t["_id"]] = Math.floor(t["count"]);
+                }
+                res.json({
+                    total: count,
+                    players: distinct,
+                    types: types
+                })
+            })
+
+
+        })
+    })
+})
+
 app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
     let type = req.params.type || "all";
