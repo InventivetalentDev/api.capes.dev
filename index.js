@@ -405,6 +405,15 @@ function makeCapeInfo(cape, message, changed) {
                 json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
             }
         }
+        if (cape.animated) {
+            json.animated = true;
+            json.animationFrames = cape.animationFrames;
+            json.stillImage = "https://api.capes.dev/img/still/" + cape.imageHash;
+            json.animatedImage = "https://api.capes.dev/img/animated/" + cape.imageHash;
+        } else {
+            // default to regular image for consistency
+            json.stillImage ="https://api.capes.dev/img/" + cape.imageHash;
+        }
     }
     if (typeof changed !== "undefined") {
         json.changed = changed;
