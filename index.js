@@ -220,13 +220,14 @@ function loadOrGetCape(type, player) {
                                 let coordinates = loader.coordinates();
                                 let aspectRatio = loader.aspectRatio();
                                 let dynamicCoordinates = loader.dynamicCoordinates();
-                                for (let transform in coordinates) {
-                                    imagePromises.push(util.uploadTransformImage(imageHash, type, transform, coordinates[transform], dynamicCoordinates, capeSize, capeBuffer));
-                                }
                                 if (loader.supportsAnimation()) {
-                                    imagePromises.push(util.handleAnimatedCape(imageHash, type, aspectRatio, capeSize,  frameDelay, capeBuffer,  (frames) => {
+                                    console.log("Type supports animation, handling animated cape")
+                                    imagePromises.push(util.handleAnimatedCape(imageHash, type, aspectRatio, dynamicCoordinates, capeSize,  frameDelay, coordinates, capeBuffer,  (frames) => {
                                         animationFrames = frames;
                                     }));
+                                } else {
+                                    console.log("Handling still cape")
+                                    imagePromises.push(util.handleStillCape(imageHash, type, aspectRatio, coordinates, dynamicCoordinates, capeSize, capeBuffer));
                                 }
                             }
                             let cape = new Cape({
@@ -335,7 +336,9 @@ app.get("/img/:hash", function (req, res) {
     let hash = req.params.hash;
     hash = hash.split(".")[0]; // Remove potential file extensions
 
-    findAndSendCapeImage(req, res, hash);
+    console.log(JSON.stringify(req.query));
+
+    findAndSendCapeImage(req, res, hash, null, typeof req.query.still  !== "undefined", typeof req.query.animated  !== "undefined");
 })
 
 app.get("/img/:transform/:hash", function (req, res) {
@@ -343,12 +346,14 @@ app.get("/img/:transform/:hash", function (req, res) {
     let hash = req.params.hash;
     hash = hash.split(".")[0]; // Remove potential file extensions
 
-    findAndSendCapeImage(req, res, hash, transform);
+    findAndSendCapeImage(req, res, hash, transform, typeof req.query.still !== "undefined", typeof req.query.animated !== "undefined");
 })
 
 
-function findAndSendCapeImage(req, res, hash, transform) {
-    Cape.findOne({imageHash: hash}, "hash imageHash extension", function (err, cape) {
+function findAndSendCapeImage(req, res, hash, transform, preferStill, preferAnimated) {
+    console.log("preferStill: " + preferStill);
+    console.log("preferAnimated: "+preferAnimated)
+    Cape.findOne({imageHash: hash}, "hash imageHash extension animated", function (err, cape) {
         if (err) {
             console.error(err);
             res.status(500).json({error: "database error"});
@@ -358,10 +363,21 @@ function findAndSendCapeImage(req, res, hash, transform) {
             res.status(404).json({error: "not found"});
         } else {
             let file = cape.imageHash;
+            let options = {};
             if (transform) {
                 file += "_" + transform;
             }
-            let url = util.imageUrl(file);
+            console.log(cape);
+            if(cape.animated) {
+                if (preferStill) { // Reply with the first frame of the animation, cropped to regular dimensions
+                    file += "_animated";
+                    options["page"]=1;// first GIF frame
+                } else if(preferAnimated ) {// Reply with animation, cropped to regular dimensions
+                    file += "_animated";
+                }
+                // Otherwise reply with the full size original cape image, including all the frames
+            }
+            let url = util.imageUrl(file,options);
             res.header("X-Image-Location", url);
             axios({
                 method: "get",
@@ -390,7 +406,9 @@ function makeCapeInfo(cape, message, changed) {
         type: cape.type,
         time: cape.time,
         width: cape.width,
-        height: cape.height,
+        fullWidth: cape.width,
+        height: cape.animated ? Math.floor(cape.height/cape.animationFrames) : cape.height,
+        fullHeight: cape.height,
         extension: cape.extension,
         exists: !hasNoCape,
         imageHash: hasNoCape ? null : cape.imageHash,
@@ -398,22 +416,41 @@ function makeCapeInfo(cape, message, changed) {
         imageUrl: hasNoCape ? null : ("https://api.capes.dev/img/" + cape.imageHash)
     };
     if (!hasNoCape) {
-        let loader = LOADERS[cape.type];
-        if (loader) {
-            let coordinates = loader.coordinates();
-            for (let transform in coordinates) {
-                json[transform + "ImageUrl"] = "https://api.capes.dev/img/" + transform + "/" + cape.imageHash
-            }
-        }
         if (cape.animated) {
             json.animated = true;
             json.animationFrames = cape.animationFrames;
-            json.stillImage = "https://api.capes.dev/img/still/" + cape.imageHash;
-            json.animatedImage = "https://api.capes.dev/img/animated/" + cape.imageHash;
+            json.stillImageUrl = "https://api.capes.dev/img/" + cape.imageHash + "?still";
+            json.animatedImageUrl = "https://api.capes.dev/img/"+ cape.imageHash+"?animated";
         } else {
             // default to regular image for consistency
-            json.stillImage ="https://api.capes.dev/img/" + cape.imageHash;
+            json.stillImageUrl ="https://api.capes.dev/img/" + cape.imageHash;
         }
+        let imageUrls = {
+            base: {
+                full: json.imageUrl
+            },
+            still: {},
+            animated: {}
+        };
+        let loader = LOADERS[cape.type];
+        if (loader) {
+            let coordinates = loader.coordinates();
+            let baseUrl = "https://api.capes.dev/img/";
+            imageUrls["still"]["full"] = baseUrl+cape.imageHash+"?still";
+            if (cape.animated) {
+                imageUrls["animated"]["full"] = baseUrl + cape.imageHash+"?animated";
+            }
+            for (let transform in coordinates) {
+                let transformUrl = baseUrl + transform + "/" + cape.imageHash;
+                json[transform + "ImageUrl"] = transformUrl;
+                imageUrls["base"][""+transform] = transformUrl;
+                imageUrls["still"][""+transform] = transformUrl+"?still";
+                if (cape.animated) {
+                    imageUrls["animated"]["" + transform] = transformUrl + "?animated";
+                }
+            }
+        }
+        json.imageUrls = imageUrls;
     }
     if (typeof changed !== "undefined") {
         json.changed = changed;
