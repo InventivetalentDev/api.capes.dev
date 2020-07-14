@@ -101,7 +101,11 @@ app.get("/stats", function (req, res) {
 
         })
     })
-})
+});
+
+app.get("/types", function (req, res) {
+    res.json(SUPPORTED_TYPES);
+});
 
 app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
