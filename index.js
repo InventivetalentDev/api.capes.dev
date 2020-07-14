@@ -212,13 +212,21 @@ function loadOrGetCape(type, player) {
                         util.bufferFileExtension(capeBuffer).then(extension => {
                             console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
                             let imagePromises = [];
+                            let animationFrames = -1;
+                            let frameDelay = loader.frameDelay();
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
                                 imagePromises.push(util.uploadImage(imageHash, type, capeBuffer));
                                 let coordinates = loader.coordinates();
+                                let aspectRatio = loader.aspectRatio();
                                 let dynamicCoordinates = loader.dynamicCoordinates();
                                 for (let transform in coordinates) {
                                     imagePromises.push(util.uploadTransformImage(imageHash, type, transform, coordinates[transform], dynamicCoordinates, capeSize, capeBuffer));
+                                }
+                                if (loader.supportsAnimation()) {
+                                    imagePromises.push(util.handleAnimatedCape(imageHash, type, aspectRatio, capeSize,  frameDelay, capeBuffer,  (frames) => {
+                                        animationFrames = frames;
+                                    }));
                                 }
                             }
                             let cape = new Cape({
@@ -233,6 +241,10 @@ function loadOrGetCape(type, player) {
                                 width: capeSize.width || 0,
                                 height: capeSize.height || 0
                             });
+                            if (animationFrames > 0) {
+                                cape.animationFrames = animationFrames;
+                                cape.animated = true;
+                            }
                             cape.save(function (err, cape) {
                                 if (err) {
                                     console.warn("Failed to save cape");

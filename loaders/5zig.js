@@ -25,6 +25,14 @@ class FivezigCapeLoader extends CapeLoader {
         })
     }
 
+    supportsAnimation() {
+        return true;
+    }
+
+    frameDelay() {
+        return 50;
+    }
+
 }
 
 module.exports = FivezigCapeLoader;

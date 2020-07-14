@@ -46,6 +46,18 @@ class CapeLoader {
         })
     }
 
+    supportsAnimation() {
+        return false;
+    }
+
+    frameDelay() {
+        return -1;
+    }
+
+    aspectRatio() {
+        return 64 / 32;
+    }
+
     dynamicCoordinates() {
         return true;
     }

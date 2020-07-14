@@ -13,6 +13,10 @@ class LabymodCapeLoader extends CapeLoader {
         return this.loadCapeImage("https://dl.labymod.net/capes/" + uuid)
     }
 
+    aspectRatio() {
+        return 88 / 68;
+    }
+
     coordinates() {
         return {
             front: [1 / 22, 1 / 17, 10 / 22, 16 / 16]

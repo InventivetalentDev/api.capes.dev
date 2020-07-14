@@ -2,6 +2,8 @@ const config = require("./config");
 const axios = require("axios");
 const hasha = require("hasha");
 const crypto = require("crypto");
+const GIFEncoder = require("gifencoder");
+const {createCanvas, Image} = require("canvas");
 const bufferImageSize = require("buffer-image-size");
 const fileType = require("file-type");
 const cloudinary = require("cloudinary").v2;
@@ -181,7 +183,47 @@ function addUuidDashes(uuid) {
     return uuid.substr(0, 8) + "-" + uuid.substr(8, 4) + "-" + uuid.substr(12, 4) + "-" + uuid.substr(16, 4) + "-" + uuid.substr(20)
 }
 
-function uploadTransformImage(name, type, transform, transformation, dynamic, size, buffer) {
+function handleAnimatedCape(name, type, expectedAspectRatio, actualSize,  frameDelay, buffer, framesCallback) {
+    let actualAspectRatio = actualSize.width / actualSize.height;
+    console.log("actualAspect: "+actualAspectRatio)
+    let expectedHeight = actualSize.width / expectedAspectRatio;
+    console.log("expectedHeight: "+expectedHeight)
+    let actualHeightMultiplier = actualSize.height/expectedHeight;
+    console.log("actualHeightMulti: "+actualHeightMultiplier)
+    let coordinates = [0, 0, actualSize.width, expectedHeight];
+    console.log("coordinates: "+coordinates)
+    if (actualHeightMultiplier >= 2) {
+        framesCallback(actualHeightMultiplier);
+        let promises = [];
+        promises.push(uploadTransformImage(name, type, "still", coordinates, true, {width: actualSize.width, height: expectedHeight}, buffer));
+        promises.push(uploadAnimatedImage(name, type, actualSize, expectedHeight,  coordinates,frameDelay, actualHeightMultiplier,buffer))
+        return Promise.all(promises);
+    } else {
+        return Promise.resolve(null);
+    }
+}
+
+function uploadAnimatedImage(name, type, actualSize, expectedHeight, coordinates, frameDelay, frameCount, buffer) {
+    const sourceImage = new Image();
+    sourceImage.src = buffer;
+
+    const encoder = new GIFEncoder(actualSize.width, expectedHeight);
+    encoder.start();
+    encoder.setRepeat(0);
+
+    const canvas = createCanvas(actualSize.width, expectedHeight);
+    const context = canvas.getContext("2d");
+    for (let i = 0; i < frameCount; i++) {
+        context.drawImage(sourceImage, 0, i * expectedHeight, actualSize.width, expectedHeight, 0, 0, actualSize.width, expectedHeight);
+        encoder.addFrame(context);
+    }
+    encoder.finish();
+    const data = encoder.out.getData();
+
+    return uploadTransformImage(name, type, "animated", coordinates, true, {width: actualSize.width, height: expectedHeight}, data, {frameCount:frameCount,frameDelay:frameDelay});
+}
+
+function uploadTransformImage(name, type, transform, transformation, dynamic, size, buffer, meta) {
     if (typeof transformation === "function") {
         transformation = transformation(size);
     }
@@ -191,6 +233,13 @@ function uploadTransformImage(name, type, transform, transformation, dynamic, si
             public_id: name + "_" + transform,
             tags: ["cape", type, transform]
         };
+        if (meta) {
+            let formattedMetaArr = [];
+            for (let m in meta) {
+                formattedMetaArr.push(m + "=" + meta[m]);
+            }
+            options.context = formattedMetaArr.join("|");
+        }
         if (!dynamic) {
             // use cloudinary preset
             options.transformation = "cape_" + transform + "_" + type;
@@ -249,6 +298,7 @@ module.exports = {
     capeHash,
     uploadImage,
     uploadTransformImage,
+    handleAnimatedCape,
     imageUrl,
     addUuidDashes
 }

@@ -33,6 +33,12 @@ const capeSchema = new Schema({
         type: Number,
         index: true
     },
+    animated: {
+        type: Boolean
+    },
+    animationFrames: {
+        type: Number
+    },
     extension: String,
     imageHash: {
         type: String,
