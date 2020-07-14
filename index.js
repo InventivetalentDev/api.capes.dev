@@ -110,7 +110,7 @@ app.get("/types", function (req, res) {
 app.get("/load/:player/:type?", function (req, res) {
     let player = req.params.player;
     let type = req.params.type || "all";
-    if (player.length < 2 || player.length > 36) {
+    if (player.length < 1 || player.length > 36) {
         res.status(400).json({error: "invalid player"});
         return;
     }
@@ -260,7 +260,7 @@ function loadOrGetCape(type, player) {
 app.get("/history/:player/:type?", function (req, res) {
     let player = req.params.player;
     let type = req.params.type || "all";
-    if (player.length < 2 || player.length > 36) {
+    if (player.length < 1 || player.length > 36) {
         res.status(400).json({error: "invalid player"});
         return;
     }
