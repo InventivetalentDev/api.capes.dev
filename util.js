@@ -203,14 +203,10 @@ function handleStillCape(name, type, aspectRatio, coordinates, dynamicCoordinate
  */
 function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates, actualSize, frameDelay, coordinates, buffer, framesCallback) {
     let actualAspectRatio = actualSize.width / actualSize.height;
-    console.log("actualAspect: " + actualAspectRatio)
     let expectedHeight = actualSize.width / expectedAspectRatio;
-    console.log("expectedHeight: " + expectedHeight)
     let actualHeightMultiplier = actualSize.height / expectedHeight;
-    console.log("actualHeightMulti: " + actualHeightMultiplier)
     if (actualHeightMultiplier >= 2) {
         // coordinates = [0, 0, actualSize.width, expectedHeight];
-        console.log("coordinates: " + coordinates)
         framesCallback(actualHeightMultiplier);
         let promises = [];
         let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, buffer, firstFrame => {
@@ -261,7 +257,6 @@ function formatMeta(meta) {
 }
 
 function uploadTransformImage(name, type, transform, transformation, dynamic, size, buffer, suffix, meta) {
-    console.log(transformation);
     if (typeof transformation === "function") {
         transformation = transformation(size);
     }

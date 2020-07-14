@@ -336,8 +336,6 @@ app.get("/img/:hash", function (req, res) {
     let hash = req.params.hash;
     hash = hash.split(".")[0]; // Remove potential file extensions
 
-    console.log(JSON.stringify(req.query));
-
     findAndSendCapeImage(req, res, hash, null, typeof req.query.still !== "undefined", typeof req.query.animated !== "undefined");
 })
 
@@ -351,8 +349,6 @@ app.get("/img/:transform/:hash", function (req, res) {
 
 
 function findAndSendCapeImage(req, res, hash, transform, preferStill, preferAnimated) {
-    console.log("preferStill: " + preferStill);
-    console.log("preferAnimated: " + preferAnimated)
     Cape.findOne({imageHash: hash}, "hash imageHash extension animated", function (err, cape) {
         if (err) {
             console.error(err);
@@ -367,7 +363,6 @@ function findAndSendCapeImage(req, res, hash, transform, preferStill, preferAnim
             if (transform) {
                 file += "_" + transform;
             }
-            console.log(cape);
             if (cape.animated) {
                 if (preferStill) { // Reply with the first frame of the animation, cropped to regular dimensions
                     file += "_animated";
