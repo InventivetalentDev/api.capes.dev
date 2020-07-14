@@ -191,7 +191,7 @@ function handleStillCape(name, type, aspectRatio, coordinates, dynamicCoordinate
     let promises = [];
     for (let transform in coordinates) {
         let transformation = coordinates[transform];
-        promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, capeSize, buffer));
+        promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, capeSize, buffer, null, {type:type,transform:transform}));
     }
     return Promise.all(promises);
 }
@@ -216,9 +216,10 @@ function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates,
         let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, buffer, firstFrame => {
             // promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, actualSize, animatedBuffer, "animated", {frameCount:actualHeightMultiplier,frameDelay:frameDelay}));
         });
-        let meta = {frameCount: actualHeightMultiplier, frameDelay: frameDelay};
+        let meta = {frameCount: actualHeightMultiplier, frameDelay: frameDelay, type: type,animated:true};
         uploadImage(name, type, animatedBuffer, "animated", meta);
         for (let transform in coordinates) {
+            meta.transform = transform;
             let transformation = coordinates[transform];
             promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, {width: actualSize.width, height: expectedHeight}, animatedBuffer, "animated", meta));
         }

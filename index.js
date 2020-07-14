@@ -216,7 +216,7 @@ function loadOrGetCape(type, player) {
                             let frameDelay = loader.frameDelay();
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
-                                imagePromises.push(util.uploadImage(imageHash, type, capeBuffer));
+                                imagePromises.push(util.uploadImage(imageHash, type, capeBuffer,null,{type:type}));
                                 let coordinates = loader.coordinates();
                                 let aspectRatio = loader.aspectRatio();
                                 let dynamicCoordinates = loader.dynamicCoordinates();
