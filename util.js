@@ -201,26 +201,26 @@ function handleStillCape(name, type, aspectRatio, coordinates, dynamicCoordinate
  * - <hash>_animated
  * - <hash>_<transform>_animated...
  */
-function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates, actualSize,  frameDelay, coordinates, buffer, framesCallback) {
+function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates, actualSize, frameDelay, coordinates, buffer, framesCallback) {
     let actualAspectRatio = actualSize.width / actualSize.height;
-    console.log("actualAspect: "+actualAspectRatio)
+    console.log("actualAspect: " + actualAspectRatio)
     let expectedHeight = actualSize.width / expectedAspectRatio;
-    console.log("expectedHeight: "+expectedHeight)
-    let actualHeightMultiplier = actualSize.height/expectedHeight;
-    console.log("actualHeightMulti: "+actualHeightMultiplier)
+    console.log("expectedHeight: " + expectedHeight)
+    let actualHeightMultiplier = actualSize.height / expectedHeight;
+    console.log("actualHeightMulti: " + actualHeightMultiplier)
     if (actualHeightMultiplier >= 2) {
         // coordinates = [0, 0, actualSize.width, expectedHeight];
-        console.log("coordinates: "+coordinates)
+        console.log("coordinates: " + coordinates)
         framesCallback(actualHeightMultiplier);
         let promises = [];
-        let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, buffer, firstFrame=>{
+        let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, buffer, firstFrame => {
             // promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, actualSize, animatedBuffer, "animated", {frameCount:actualHeightMultiplier,frameDelay:frameDelay}));
         });
-        let meta = {frameCount:actualHeightMultiplier,frameDelay:frameDelay};
+        let meta = {frameCount: actualHeightMultiplier, frameDelay: frameDelay};
         uploadImage(name, type, animatedBuffer, "animated", meta);
         for (let transform in coordinates) {
             let transformation = coordinates[transform];
-            promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, {width:actualSize.width, height:expectedHeight}, animatedBuffer, "animated", meta));
+            promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, {width: actualSize.width, height: expectedHeight}, animatedBuffer, "animated", meta));
         }
         return Promise.all(promises);
     } else {
@@ -271,7 +271,7 @@ function uploadTransformImage(name, type, transform, transformation, dynamic, si
             tags: ["cape", type, transform]
         };
         if (suffix) {
-            options.public_id+="_"+suffix;
+            options.public_id += "_" + suffix;
             options.tags.push(suffix);
         }
         if (meta) {
