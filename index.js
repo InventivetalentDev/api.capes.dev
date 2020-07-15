@@ -197,6 +197,9 @@ function loadOrGetCape(type, player) {
                     let imageHash = capeBuffer ? util.bufferHash(capeBuffer) : HAS_NO_CAPE;
                     if (existingCape && imageHash === existingCape.imageHash) {
                         console.info("Updating time of existing " + type + " cape for " + name + " (" + existingCape.hash + ")");
+                        if(!existingCape.firstTime) {
+                            existingCape.firstTime = existingCape.time;
+                        }
                         existingCape.time = time;
                         existingCape.save(function (err, cape) {
                             if (err) {
