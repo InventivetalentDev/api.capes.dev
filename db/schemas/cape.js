@@ -33,6 +33,9 @@ const capeSchema = new Schema({
         type: Number,
         index: true
     },
+    firstTime: {
+      type: Number
+    },
     animated: {
         type: Boolean
     },

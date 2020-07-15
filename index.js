@@ -237,6 +237,7 @@ function loadOrGetCape(type, player) {
                                 lowerPlayerName: name.toLowerCase(),
                                 type: type,
                                 time: time,
+                                firstTime: time,
                                 extension: extension,
                                 imageHash: imageHash,
                                 width: capeSize.width || 0,
