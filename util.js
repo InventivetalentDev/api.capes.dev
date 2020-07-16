@@ -209,7 +209,7 @@ function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates,
         // coordinates = [0, 0, actualSize.width, expectedHeight];
         framesCallback(actualHeightMultiplier);
         let promises = [];
-        let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, buffer, firstFrame => {
+        let animatedBuffer = makeAnimatedImage(name, type, actualSize, expectedHeight, actualHeightMultiplier, frameDelay, buffer, firstFrame => {
             // promises.push(uploadTransformImage(name, type, transform, transformation, dynamicCoordinates, actualSize, animatedBuffer, "animated", {frameCount:actualHeightMultiplier,frameDelay:frameDelay}));
         });
         let meta = {frameCount: actualHeightMultiplier, frameDelay: frameDelay, type: type,animated:true};
@@ -225,13 +225,14 @@ function handleAnimatedCape(name, type, expectedAspectRatio, dynamicCoordinates,
     }
 }
 
-function makeAnimatedImage(name, type, actualSize, expectedHeight, frameCount, buffer, firstFrameCallback) {
+function makeAnimatedImage(name, type, actualSize, expectedHeight, frameCount, frameDelay, buffer, firstFrameCallback) {
     const sourceImage = new Image();
     sourceImage.src = buffer;
 
     const encoder = new GIFEncoder(actualSize.width, expectedHeight);
     encoder.start();
     encoder.setRepeat(0);
+    encoder.setDelay(frameDelay);
 
     const canvas = createCanvas(actualSize.width, expectedHeight);
     const context = canvas.getContext("2d");
