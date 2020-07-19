@@ -369,11 +369,10 @@ function findAndSendCapeImage(req, res, hash, transform, preferStill, preferAnim
                 file += "_" + transform;
             }
             if (cape.animated) {
+                file += "_animated";
                 if (preferStill) { // Reply with the first frame of the animation, cropped to regular dimensions
-                    file += "_animated";
                     options["page"] = 1;// first GIF frame
                 } else if (preferAnimated) {// Reply with animation, cropped to regular dimensions
-                    file += "_animated";
                 }
                 // Otherwise reply with the full size original cape image, including all the frames
             }
