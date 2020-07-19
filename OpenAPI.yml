@@ -1,0 +1,308 @@
+openapi: 3.0.0
+info:
+  title: Capes.dev API
+  description: Minecraft Capes API, History & CDN
+  version: 1.0.0
+  license:
+    name: MIT
+    url: "https://github.com/InventivetalentDev/api.capes.dev/blob/master/LICENSE"
+  contact:
+    name: inventivetalent
+    url: "https://inventivetalent.dev"
+
+servers:
+  - url: https://api.capes.dev/
+
+components:
+  schemas:
+    Cape:
+      type: object
+      properties:
+        exists:
+          type: boolean
+          description: Whether the requested player owns a cape of this type
+        msg:
+          type: string
+          description: Status message
+          example: "Cape found"
+        hash:
+          type: string
+          description: Unique hash of the cape
+        player:
+          type: string
+          description: Stripped UUID of the owning player
+          example: "bcd2033c63ec4bf88aca680b22461340"
+        playerName:
+          type: string
+          description: Owning player's name
+          example: "inventivetalent"
+        type:
+          type: string
+          description: Type of the cape
+          example: "optifine"
+        time:
+          type: number
+          description: Timestamp when this cape was last loaded
+        width:
+          type: number
+          description: Width of the cape
+        fullWidth:
+          type: number
+          description: Width of the source cape image
+        height:
+          type: number
+          description: Height of the cape (this is the height of a single frame for animated capes)
+        fullHeight:
+          type: number
+          description: Height of the source cape image
+        extension:
+          type: string
+          description: Cape image's file extension (usually PNG)
+          example: png
+        imageHash:
+          type: string
+          description: Hash of the source cape image
+        capeUrl:
+          type: string
+          description: Direct link to get information about this cape, see [/get/{hash}](#/cape/getCapeByHash)
+        imageUrl:
+          type: string
+          description: Direct link to the cached cape source image, see [/img/{imageHash}](#/image/getImageByHash)
+        imageUrls:
+          $ref: '#/components/schemas/ImageUrls'
+    ImageUrls:
+      type: object
+      description: Set of available cape image variants
+      properties:
+        base:
+          type: object
+          description: Base image links, defaults to animated version if applicable - always present if the cape exists
+          allOf:
+            - $ref: '#/components/schemas/ImageVariantUrls'
+        still:
+          type: object
+          description: Forced static versions of possibly animated capes - always present if the cape exists
+          allOf:
+            - $ref: '#/components/schemas/ImageVariantUrls'
+        animated:
+          type: object
+          description: Forced animated versions capes - only has properties if the cape is animated
+          allOf:
+            - $ref: '#/components/schemas/ImageVariantUrls'
+    ImageVariantUrls:
+      type: object
+      description: Direct links to image variants
+      properties:
+        full:
+          type: string
+          description: Link to the cape's full texture (first frame if animated), see [/img/{imageHash}](#/image/getImageByHash)
+        front:
+          type: string
+          description: Link to the cape's front texture,  see [/img/{transform}/{imageHash}](#/image/getImageTransformByHash)
+
+paths:
+  /types:
+    get:
+      tags:
+        - info
+      summary: Get a list of supported cape types
+      responses:
+        200:
+          description: JSON Array of supported cape types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /stats:
+    get:
+      tags:
+        - info
+      summary: Get API stats
+      responses:
+        200:
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                    description: Total stored cape count
+                  players:
+                    type: number
+                    description: Number of unique players
+                  types:
+                    type: object
+                    description: Map of counts per type
+                    additionalProperties:
+                      type: number
+  /load/{player}/{type}:
+    get:
+      tags:
+        - player
+      summary: Load a player's cape of the specified type
+      operationId: loadPlayerType
+      parameters:
+        - in: path
+          name: player
+          description: Player UUID or Name (UUID recommended)
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: type
+          description: Type to load
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: JSON Object containing the cape info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cape'
+  /load/{player}:
+    get:
+      tags:
+        - player
+      summary: Load all available cape types for a player
+      operationId: loadPlayer
+      parameters:
+        - in: path
+          name: player
+          description: Player UUID or Name (UUID recommended)
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: JSON Object mapping type -> cape info
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Cape'
+  /history/{player}/{type}:
+    get:
+      tags:
+        - player
+      summary: Get the cape history of a player
+      operationId: playerHistory
+      parameters:
+        - in: path
+          name: player
+          description: Player UUID or Name (UUID recommended)
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: type
+          description: (optinal) Type to check
+          required: true  # Swagger doesn't support optional path params ._.
+          schema:
+            type: string
+      responses:
+        200:
+          description: History info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    description: "Either 'all' if checking all types, or the requested type"
+                    example: "optifine"
+                  player:
+                    type: string
+                    description: "Requested player name/uuid"
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Cape'
+  /get/{hash}:
+    get:
+      tags:
+        - cape
+      summary: Get a specific cape's data by its hash
+      operationId: getCapeByHash
+      parameters:
+        - in: path
+          name: hash
+          description: Cape hash
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Cape info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cape'
+  /img/{hash}:
+    get:
+      tags:
+        - image
+      summary: Get a cape image by its image hash
+      operationId: getImageByHash
+      parameters:
+        - in: path
+          name: hash
+          description: Image hash
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: still
+          description: Prefer still version
+          schema:
+            type: boolean
+        - in: query
+          name: animated
+          description: Prefer animated version
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Cape image
+  /img/{transform}/{hash}:
+    get:
+      tags:
+        - image
+      summary: Get a transformed cape image by its image hash
+      operationId: getImageTransformByHash
+      parameters:
+        - in: path
+          name: transform
+          description: Transform id
+          required: true
+          schema:
+            type: string
+          example: front
+        - in: path
+          name: hash
+          description: Image hash
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: still
+          description: Prefer still version
+          schema:
+            type: boolean
+        - in: query
+          name: animated
+          description: Prefer animated version
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Transformed Cape image
+
+
