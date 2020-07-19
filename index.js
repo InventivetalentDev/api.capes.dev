@@ -249,6 +249,7 @@ function loadOrGetCape(type, player) {
                             });
                             if (animationFrames > 0) {
                                 cape.animationFrames = animationFrames;
+                                cape.frameDelay = frameDelay;
                                 cape.animated = true;
                             }
                             cape.save(function (err, cape) {

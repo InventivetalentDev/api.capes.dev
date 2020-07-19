@@ -42,6 +42,9 @@ const capeSchema = new Schema({
     animationFrames: {
         type: Number
     },
+    frameDelay: {
+        type: Number
+    },
     extension: String,
     imageHash: {
         type: String,
