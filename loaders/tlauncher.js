@@ -59,7 +59,7 @@ class TlauncherCapeLoader extends CapeLoader {
     frameDelay(uuid, name) {
         let cached = this.capeCache[name.toLowerCase()];
         if(cached && cached.fps){
-            return cached.fps / 1000; // FPS -> Delay
+            return 1/cached.fps * 1000; // FPS -> Delay
         }
         return 100;
     }
