@@ -11,6 +11,14 @@ class MinecraftcapesCapeLoader extends CapeLoader {
         return this.loadCapeImage("https://minecraftcapes.net/profile/" + uuid + "/cape")
     }
 
+    supportsAnimation() {
+        return true;
+    }
+
+    frameDelay() {
+        return 100;
+    }
+
 }
 
 module.exports = MinecraftcapesCapeLoader;
