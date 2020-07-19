@@ -67,8 +67,6 @@ class TlauncherCapeLoader extends CapeLoader {
     coordinates(isAnimated, uuid, name) {
         if(isAnimated) {
             let cached = this.capeCache[name.toLowerCase()];
-            console.log("cached coordinates info");
-            console.log(cached);
             if (cached && cached.capeHeight) {
                 return {
                     front: [16 / 352, 16 / cached.capeHeight, 160 / 352, 256 / cached.capeHeight]
