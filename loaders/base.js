@@ -50,11 +50,15 @@ class CapeLoader {
         return false;
     }
 
-    frameDelay() {
+    isAnimated(width, height, uuid, name) {
+        return height>width;
+    }
+
+    frameDelay(uuid, name) {
         return -1;
     }
 
-    aspectRatio() {
+    aspectRatio(isAnimated, uuid, name) {
         return 64 / 32;
     }
 
@@ -62,7 +66,7 @@ class CapeLoader {
         return true;
     }
 
-    coordinates() {
+    coordinates(isAnimated, uuid, name) {
         return {
             front: [1 / 64, 1 / 32, 10 / 64, 16 / 32]
         }

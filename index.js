@@ -216,14 +216,15 @@ function loadOrGetCape(type, player) {
                             console.info("Saving new " + type + " cape for " + name + " (" + capeHash + " " + capeSize.width + "x" + capeSize.height + ")");
                             let imagePromises = [];
                             let animationFrames = -1;
-                            let frameDelay = loader.frameDelay();
+                            let frameDelay = loader.frameDelay(uuid, name);
                             if (capeBuffer) {
                                 console.info("Uploading " + imageHash + " to cloudinary...");
                                 imagePromises.push(util.uploadImage(imageHash, type, capeBuffer,null,{type:type}));
-                                let coordinates = loader.coordinates();
-                                let aspectRatio = loader.aspectRatio();
+                                let isAnimated = loader.supportsAnimation() && loader.isAnimated(capeSize.width, capeSize.height, uuid, name);
+                                let coordinates = loader.coordinates(isAnimated, uuid, name);
+                                let aspectRatio = loader.aspectRatio(isAnimated, uuid, name);
                                 let dynamicCoordinates = loader.dynamicCoordinates();
-                                if (loader.supportsAnimation()) {
+                                if (isAnimated) {
                                     console.log("Type supports animation, handling animated cape")
                                     imagePromises.push(util.handleAnimatedCape(imageHash, type, aspectRatio, dynamicCoordinates, capeSize, frameDelay, coordinates, capeBuffer, (frames) => {
                                         animationFrames = frames;
