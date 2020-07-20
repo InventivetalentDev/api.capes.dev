@@ -66,7 +66,7 @@ function fetchCape(type, uuid, name) {
 }
 
 app.get("/stats", function (req, res) {
-    Cape.count({}, function (err, count) {
+    Cape.count({imageHash:{$ne:HAS_NO_CAPE}}, function (err, count) {
         if (err) {
             console.error(err);
             res.json({code: 500, error: "database error"});
@@ -81,7 +81,7 @@ app.get("/stats", function (req, res) {
             }
             let distinct = players.length;
 
-            Cape.aggregate([{$group: {_id: '$type', count: {$sum: 1}}}], function (err, perType) {
+            Cape.aggregate([{$match:{imageHash:{$ne:HAS_NO_CAPE}}},{$group: {_id: '$type', count: {$sum: 1}}}], function (err, perType) {
                 if (err) {
                     console.error(err);
                     res.json({code: 500, error: "database error"});
