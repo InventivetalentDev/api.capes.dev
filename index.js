@@ -275,7 +275,6 @@ function loadOrGetCape(type, player) {
     })
 }
 
-
 app.get("/history/:player/:type?", function (req, res) {
     let player = req.params.player;
     let type = req.params.type || "all";
@@ -293,6 +292,16 @@ app.get("/history/:player/:type?", function (req, res) {
     let capeQuery = {};
     if (type !== "all") {
         capeQuery.type = type;
+    }
+    if (req.query.after || req.query.before) {
+        let timeQuery = {};
+        if (req.query.after) {
+            timeQuery["$gt"] = parseInt(req.query.after);
+        }
+        if (req.query.before) {
+            timeQuery["$lt"] = parseInt(req.query.before);
+        }
+        capeQuery.time = timeQuery;
     }
     if (player.length < 20) { // name
         capeQuery.lowerPlayerName = player.toLowerCase();
