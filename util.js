@@ -104,6 +104,7 @@ function nameAndUuid(nameOrUuid) {
 }
 
 function nameFromUuid(uuid) {
+    console.log("nameFromUuid " + uuid);
     if (uuid.length < 32) throw new Error("uuid too short");
     if (uuid.length > 36) throw new Error("uuid too long");
     return new Promise(resolve => {
@@ -119,6 +120,7 @@ function nameFromUuid(uuid) {
 }
 
 function uuidFromName(name) {
+    console.log("uuidFromName "+name)
     if (name.length > 16) throw new Error("name too long");
     name = name.toLowerCase();
     return new Promise(resolve => {

@@ -28,6 +28,10 @@ class CapeLoader {
                 url: url,
                 responseType: "arraybuffer"
             }).then(resp => {
+                if (resp.data.length <= 0) {
+                    resolve(null);
+                    return;
+                }
                 resolve(Buffer.from(resp.data, "binary"));
             }).catch(err => {
                 if (err.response) {
