@@ -64,6 +64,7 @@ function doNameFetch(uuid) {
 function doUuidFetch(names) {
     return new Promise((resolve, reject) => {
         let url = "https://api.mojang.com/profiles/minecraft";
+        //TODO: limit this to 10 names per request
         console.log("POST " + url + " " + names);
         axios.post(url, names).then(resp => {
             let result = resp.data;
