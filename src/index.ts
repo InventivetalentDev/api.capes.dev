@@ -13,11 +13,14 @@ import { CapeError } from "./typings/CapeError";
 import { v2 as cloudinary } from "cloudinary";
 import { statsRoute, getRoute, imgRoute, typesRoute, loadRoute, historyRoute } from "./routes";
 import connectToMongo from "./database";
+import * as bodyParser from "body-parser";
+import { Puller } from "express-git-puller";
 
 sourceMapSupport.install();
 
 const config = getConfig();
 
+let updatingApp = true;
 
 console.log("\n" +
     "  ==== STARTING UP ==== " +
@@ -58,6 +61,51 @@ async function init() {
         app.use(corsMiddleware);
 
         app.use("/.well-known", express.static(".well-known"));
+    }
+
+    {// Git Puller
+        console.log("Setting up git puller");
+
+        const puller = new Puller({
+            ...{
+                events: ["push"],
+                branches: ["master"],
+                vars: {
+                    appName: "capes"
+                },
+                commandOrder: ["pre", "git", "install", "post"],
+                commands: {
+                    git: [
+                        "git fetch --all",
+                        "git reset --hard origin/master"
+                    ],
+                    install: [
+                        "npm install",
+                        "npm run build"
+                    ],
+                    post: [
+                        "pm2 restart $appName$"
+                    ]
+                },
+                delays: {
+                    install: Math.ceil(Math.random() * 200),
+                    post: 500 + Math.ceil(Math.random() * 1000)
+                }
+            },
+            ...config.puller
+        });
+        puller.on("before", (req: Request, res: Response) => {
+            updatingApp = true;
+            console.log(process.cwd());
+        });
+        app.use(function (req: Request, res: Response, next: NextFunction) {
+            if (updatingApp) {
+                res.status(503).send({ err: "app is updating" });
+                return;
+            }
+            next();
+        });
+        app.use(config.puller.endpoint, bodyParser.json({ limit: '100kb' }), puller.middleware);
     }
 
     {
@@ -130,6 +178,10 @@ init().then(() => {
         console.log("Starting app");
         app.listen(config.port, function () {
             console.log(info(" ==> listening on *:" + config.port + "\n"));
+            setTimeout(() => {
+                updatingApp = false;
+                console.log(info("Accepting connections."));
+            }, 200);
         });
     }, 200);
 });
