@@ -9,19 +9,35 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2",
+    "@inventivetalent/gitsha": "^1.0.0",
+    "@inventivetalent/loading-cache": "^0.4.0",
+    "@inventivetalent/typescript-memoize": "^1.0.0-alpha.5",
+    "@sentry/node": "^6.1.0",
+    "@sentry/tracing": "^6.1.0",
+    "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "buffer-image-size": "^0.6.4",
     "canvas": "^2.6.1",
-    "cloudinary": "^1.22.0",
+    "chalk": "^4.1.0",
+    "cloudinary": "^1.24.0",
     "express": "^4.17.1",
     "file-type": "^14.6.2",
     "gifencoder": "^2.0.1",
     "hasha": "^5.2.0",
-    "jobqu": "^1.0.2",
+    "jobqu": "^2.0.5",
+    "metrics-node": "^1.0.0",
     "mime-types": "^2.1.27",
-    "mongoose": "^5.9.21",
+    "mongoose": "^5.11.15",
     "tunnel-ssh": "^4.1.4",
-    "uuid": "^8.2.0"
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.0",
+    "@types/express": "^4.17.11",
+    "@types/gifencoder": "^2.0.0",
+    "@types/node": "^14.0.14",
+    "@types/tunnel-ssh": "^4.1.0",
+    "@types/uuid": "^8.3.0",
+    "typescript": "^4.1.3"
   }
 }

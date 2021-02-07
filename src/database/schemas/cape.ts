@@ -1,7 +1,10 @@
-const mongoose = require('mongoose')
-    , Schema = mongoose.Schema;
-const types = require("../../types");
-const capeSchema = new Schema({
+import { model, Schema } from "mongoose";
+import { ICapeDocument, ICapeModel } from "../../typings/ICapeDocument";
+import { CapeType } from "../../typings/CapeType";
+import { Maybe } from "../../util";
+
+
+export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     hash: {
         type: String,
         index: true,
@@ -27,14 +30,14 @@ const capeSchema = new Schema({
     type: {
         type: String,
         index: true,
-        enum: types
+        enum: Object.values(CapeType)
     },
     time: {
         type: Number,
         index: true
     },
     firstTime: {
-      type: Number
+        type: Number
     },
     animated: {
         type: Boolean
@@ -52,5 +55,11 @@ const capeSchema = new Schema({
     },
     width: Number,
     height: Number
-})
-module.exports.Cape = mongoose.model("Cape", capeSchema);
+});
+
+
+CapeSchema.statics.findByHash = function (hash: string): Promise<ICapeDocument | null> {
+    return Cape.findOne({ hash: hash }).exec();
+}
+
+export const Cape: ICapeModel = model<ICapeDocument, ICapeModel>("Cape", CapeSchema);
