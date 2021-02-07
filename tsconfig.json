@@ -22,9 +22,7 @@
     "types": [
       "node",
       "express",
-      "body-parser",
       "mongoose",
-      "morgan",
       "tunnel-ssh"
     ],
     "baseUrl": "."
