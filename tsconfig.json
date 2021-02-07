@@ -23,7 +23,8 @@
       "node",
       "express",
       "mongoose",
-      "tunnel-ssh"
+      "tunnel-ssh",
+      "source-map-support"
     ],
     "baseUrl": "."
   },
