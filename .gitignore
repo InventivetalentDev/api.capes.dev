@@ -1,9 +1,7 @@
 *.idea/
 *.iws
 
+/dist
 /node_modules/
 /config.js
 /access.log
-/ecosystem.config.js
-/id_rsa*
-*.log
