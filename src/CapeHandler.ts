@@ -29,8 +29,6 @@ export const LOADERS: { [t: string]: CapeLoader } = {};
 Object.values(CapeType).forEach(async (t) => {
     try {
         let loader = await import(`${ __dirname }/loaders/${ t }`);
-        console.log(typeof loader);
-        console.log(loader);
         LOADERS[t] = new loader.default() as CapeLoader;
         SUPPORTED_TYPES.push(t as CapeType);
     } catch (e) {
@@ -55,7 +53,7 @@ export class CapeHandler {
         if (existingCape) {
             if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
                 return {
-                    cape: existingCape,
+                    cape: Caching.cacheCape(existingCape),
                     changed: false
                 };
             }
@@ -82,7 +80,7 @@ export class CapeHandler {
             }
             existingCape.time = time;
             return {
-                cape: await existingCape.save(),
+                cape: Caching.cacheCape(await existingCape.save()),
                 changed: false
             }
         } else {

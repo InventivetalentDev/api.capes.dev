@@ -1,8 +1,10 @@
 import * as Sentry from "@sentry/node";
 import * as Tracing from "@sentry/tracing";
+import * as sourceMapSupport from "source-map-support";
 import { getConfig } from "./typings/Configs";
 import gitsha from "@inventivetalent/gitsha";
 import * as express from "express";
+import "express-async-errors";
 import { Request, Response, ErrorRequestHandler, Express, NextFunction } from "express";
 import { apiRequestsMiddleware } from "./util/metrics";
 import { corsMiddleware } from "./util";
@@ -11,6 +13,8 @@ import { CapeError } from "./typings/CapeError";
 import { v2 as cloudinary } from "cloudinary";
 import { statsRoute, getRoute, imgRoute, typesRoute, loadRoute, historyRoute } from "./routes";
 import connectToMongo from "./database";
+
+sourceMapSupport.install();
 
 const config = getConfig();
 
