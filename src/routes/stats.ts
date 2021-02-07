@@ -1,7 +1,10 @@
+import * as Sentry from "@sentry/node";
 import { Application, query, Request, Response } from "express";
 import { Cape } from "../database/schemas/cape";
 import { HAS_NO_CAPE } from "../util";
 import { Stats } from "../typings/Stats";
+import { metrics } from "../util/metrics";
+import { IPoint } from "influx";
 
 export const register = (app: Application) => {
 
@@ -31,6 +34,31 @@ export const register = (app: Application) => {
         stats.total = totalCount;
         stats.players = distinctPlayerCount;
         stats.types = perTypeCount;
+
+        try {
+            let points: IPoint[] = [];
+            for (let type in perTypeCount) {
+                points.push({
+                    measurement: 'cape_types',
+                    tags: {
+                        type: type
+                    },
+                    fields: {
+                        count: perTypeCount[type]
+                    }
+                });
+            }
+            points.push({
+                measurement: 'capes',
+                fields: {
+                    total: totalCount,
+                    players: distinctPlayerCount
+                }
+            });
+            await metrics.influx.writePoints(points);
+        } catch (e) {
+            Sentry.captureException(e);
+        }
     }
 
     setInterval(() => queryStats(), 60000);
