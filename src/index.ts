@@ -35,7 +35,7 @@ async function init() {
         console.log("Initializing Sentry")
         Sentry.init({
             dsn: config.sentry.dsn,
-            //release: await gitsha(),
+            release: await gitsha(),
             integrations: [
                 new Sentry.Integrations.Http({ tracing: true }),
                 new Tracing.Integrations.Express({ app })

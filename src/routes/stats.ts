@@ -19,7 +19,7 @@ export const register = (app: Application) => {
     async function queryStats(): Promise<void> {
         const totalCount = await Cape.countDocuments({ imageHash: { $ne: HAS_NO_CAPE } }).exec();
         const distinctPlayerCount = await Cape.find().distinct("player").exec().then(docs => docs.length);
-        const perTypeCount = Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
+        const perTypeCount = await Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
             .then((perType: any[]) => {
                 let types: { [s: string]: number } = {};
                 for (let t of perType) {
