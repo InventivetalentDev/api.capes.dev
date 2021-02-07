@@ -17,10 +17,11 @@ export const register = (app: Application) => {
         player = player.replace(/-/g, "").toLowerCase();
 
         if (type === "all") {
-            let capes: Maybe<LoadedCapeInfo>[] = [];
+            let promises: Promise<Maybe<LoadedCapeInfo>>[] = [];
             for (let type of SUPPORTED_TYPES) {
-                capes.push(await CapeHandler.getOrLoadCape(type as CapeType, player));
+                promises.push(CapeHandler.getOrLoadCape(type as CapeType, player));
             }
+            let capes: Maybe<LoadedCapeInfo>[] = await Promise.all(promises);
 
             if (!capes || capes.length <= 0) {
                 res.status(404).json({ error: "not found" });
