@@ -202,7 +202,7 @@ paths:
             type: string
         - in: path
           name: type
-          description: (optinal) Type to check
+          description: (optional) Type to check
           required: true  # Swagger doesn't support optional path params ._.
           schema:
             type: string

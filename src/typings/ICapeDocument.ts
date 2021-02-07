@@ -1,0 +1,29 @@
+import { Document, Model } from "mongoose";
+import { CapeType } from "./CapeType";
+import { Maybe } from "../util";
+
+export interface ICapeDocument extends Document {
+    hash: string;
+
+    player: string;
+    lowerPlayerName: string;
+    playerName: string;
+
+    type: CapeType;
+    extension: string;
+    imageHash: string;
+
+    time: number;
+    firstTime: number;
+
+    animated: boolean;
+    animationFrames?: number;
+    frameDelay?: number;
+
+    width: number;
+    height: number;
+}
+
+export interface ICapeModel extends Model<ICapeDocument> {
+    findByHash(hash: string): Promise<Maybe<ICapeDocument>>;
+}
