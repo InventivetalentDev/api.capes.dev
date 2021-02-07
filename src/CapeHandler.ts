@@ -33,6 +33,7 @@ Object.values(CapeType).forEach(async (t) => {
         SUPPORTED_TYPES.push(t as CapeType);
     } catch (e) {
         console.warn(warn(`Failed to init cape loader ${ t }`));
+        console.warn(e);
         Sentry.captureException(e);
     }
 })
