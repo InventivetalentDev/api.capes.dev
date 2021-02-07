@@ -7,7 +7,7 @@ import * as express from "express";
 import "express-async-errors";
 import { Request, Response, ErrorRequestHandler, Express, NextFunction } from "express";
 import { apiRequestsMiddleware } from "./util/metrics";
-import { corsMiddleware } from "./util";
+import { corsMiddleware, getIp } from "./util";
 import { info, warn } from "./util/colors";
 import { CapeError } from "./typings/CapeError";
 import { v2 as cloudinary } from "cloudinary";
@@ -59,6 +59,12 @@ async function init() {
         app.set("trust proxy", 1);
         app.use(apiRequestsMiddleware);
         app.use(corsMiddleware);
+        app.use((req, res, next) => {
+            Sentry.setUser({
+                ip_address: getIp(req)
+            });
+            next();
+        })
 
         app.use("/.well-known", express.static(".well-known"));
     }
