@@ -3,7 +3,7 @@ import { Maybe } from "../util";
 import { Caching } from "../Caching";
 import { TextureInfo } from "../typings/ProfileResponse";
 
-export class MinecraftCapeLoader extends CapeLoader {
+export  default class MinecraftCapeLoader extends CapeLoader {
 
     constructor() {
         super("minecraft");

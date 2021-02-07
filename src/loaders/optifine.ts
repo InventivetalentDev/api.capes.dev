@@ -3,7 +3,7 @@ import { addDashesToUuid, Maybe } from "../util";
 import { Caching } from "../Caching";
 import { TextureInfo } from "../typings/ProfileResponse";
 
-export class OptifineCapeLoader extends CapeLoader {
+export default class OptifineCapeLoader extends CapeLoader {
 
     constructor() {
         super("optifine");

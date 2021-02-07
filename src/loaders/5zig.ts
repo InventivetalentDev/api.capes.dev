@@ -4,7 +4,7 @@ import { addDashesToUuid, Maybe } from "../util";
 import { Caching } from "../Caching";
 import { TextureInfo } from "../typings/ProfileResponse";
 
-export class FivezigCapeLoader extends CapeLoader {
+export default class FivezigCapeLoader extends CapeLoader {
 
     constructor() {
         super("5zig");

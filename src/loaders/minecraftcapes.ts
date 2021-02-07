@@ -3,7 +3,7 @@ import { addDashesToUuid, Maybe } from "../util";
 import { Caching } from "../Caching";
 import { TextureInfo } from "../typings/ProfileResponse";
 
-export class MinecraftcapesCapeLoader extends CapeLoader {
+export default class MinecraftcapesCapeLoader extends CapeLoader {
 
     constructor() {
         super("minecraftcapes");

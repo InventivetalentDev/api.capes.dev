@@ -7,7 +7,7 @@ import { Caches, SimpleCache, Time } from "@inventivetalent/loading-cache";
 import { AxiosResponse } from "axios";
 import { Transforms } from "../typings";
 
-export class TlauncherCapeLoader extends CapeLoader {
+export default class TlauncherCapeLoader extends CapeLoader {
 
     constructor() {
         super("tlauncher");

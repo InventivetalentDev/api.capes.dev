@@ -10,6 +10,7 @@ import { info, warn } from "./util/colors";
 import { CapeError } from "./typings/CapeError";
 import { v2 as cloudinary } from "cloudinary";
 import { statsRoute, getRoute, imgRoute, typesRoute, loadRoute, historyRoute } from "./routes";
+import connectToMongo from "./database";
 
 const config = getConfig();
 
@@ -27,7 +28,7 @@ async function init() {
         console.log("Initializing Sentry")
         Sentry.init({
             dsn: config.sentry.dsn,
-            release: await gitsha(),
+            //release: await gitsha(),
             integrations: [
                 new Sentry.Integrations.Http({ tracing: true }),
                 new Tracing.Integrations.Express({ app })
@@ -55,6 +56,10 @@ async function init() {
         app.use("/.well-known", express.static(".well-known"));
     }
 
+    {
+        console.log("Connecting to database")
+        await connectToMongo(config);
+    }
 
     {
         console.log("Registering routes");

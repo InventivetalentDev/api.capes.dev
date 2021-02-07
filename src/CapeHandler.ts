@@ -28,8 +28,10 @@ export const SUPPORTED_TYPES: CapeType[] = [];
 export const LOADERS: { [t: string]: CapeLoader } = {};
 Object.values(CapeType).forEach(async (t) => {
     try {
-        let loader = await import(`loaders/${ t }`);
-        LOADERS[t] = new loader() as CapeLoader;
+        let loader = await import(`${ __dirname }/loaders/${ t }`);
+        console.log(typeof loader);
+        console.log(loader);
+        LOADERS[t] = new loader.default() as CapeLoader;
         SUPPORTED_TYPES.push(t as CapeType);
     } catch (e) {
         console.warn(warn(`Failed to init cape loader ${ t }`));
