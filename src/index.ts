@@ -128,7 +128,10 @@ async function init() {
 
         app.get("/openapi.yml", (req, res) => {
             res.sendFile("/openapi.yml", { root: `${ __dirname }/..` });
-        })
+        });
+        app.get("/openapi", (req, res) => {
+            res.redirect("https://openapi.inventivetalent.dev/#https://api.capes.dev/openapi.yml");
+        });
 
         statsRoute.register(app);
         typesRoute.register(app);
