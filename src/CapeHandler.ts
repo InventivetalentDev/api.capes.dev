@@ -23,7 +23,7 @@ import exp = require("constants");
 
 const config = getConfig();
 
-export const SUPPORTED_TYPES: CapeType[] = [];
+export const SUPPORTED_TYPES: string[] = [];
 
 export const LOADERS: { [t: string]: CapeLoader } = {};
 Object.values(CapeType).forEach(async (t) => {

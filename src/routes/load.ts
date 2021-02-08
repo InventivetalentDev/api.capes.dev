@@ -34,7 +34,7 @@ export const register = (app: Application) => {
                 res.json(obj);
             }
         } else {
-            if (!(type in SUPPORTED_TYPES)) {
+            if (!SUPPORTED_TYPES.includes(type)) {
                 res.status(400).json({ error: type + " is not supported. (" + SUPPORTED_TYPES + ")" });
                 return;
             }

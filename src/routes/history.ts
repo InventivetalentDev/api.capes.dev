@@ -15,7 +15,7 @@ export const register = (app: Application) => {
         }
         player = player.replace(/-/g, "").toLowerCase();
 
-        if (type !== "all" && !(type in SUPPORTED_TYPES)) {
+        if (type !== "all" && !SUPPORTED_TYPES.includes(type)) {
             res.status(400).json({ error: type + " is not supported. (" + SUPPORTED_TYPES + ")" })
             return;
         }
