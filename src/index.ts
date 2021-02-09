@@ -57,14 +57,14 @@ async function init() {
         console.log("Setting up express middleware")
 
         app.set("trust proxy", 1);
-        app.use(apiRequestsMiddleware);
         app.use(corsMiddleware);
         app.use((req, res, next) => {
             Sentry.setUser({
                 ip_address: getIp(req)
             });
             next();
-        })
+        });
+        app.use(apiRequestsMiddleware);
 
         app.use("/.well-known", express.static(".well-known"));
     }
