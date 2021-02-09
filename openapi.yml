@@ -100,11 +100,21 @@ components:
           type: string
           description: Link to the cape's front texture,  see [/img/{transform}/{imageHash}](#/image/getImageTransformByHash)
 
+  parameters:
+    userAgent:
+      name: User-Agent
+      description: Custom User-Agent for your application, see [user-agent.dev](https://user-agent.dev/) for implementation examples
+      example: "ExampleApp/v1.0"
+      in: header
+      required: true
+
 paths:
   /types:
     get:
       tags:
         - info
+      parameters:
+        - $ref: '#/components/parameters/userAgent'
       summary: Get a list of supported cape types
       responses:
         200:
@@ -119,6 +129,8 @@ paths:
     get:
       tags:
         - info
+      parameters:
+        - $ref: '#/components/parameters/userAgent'
       summary: Get API stats
       responses:
         200:
@@ -158,6 +170,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: JSON Object containing the cape info
@@ -178,6 +191,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: JSON Object mapping type -> cape info
@@ -206,6 +220,7 @@ paths:
           required: true  # Swagger doesn't support optional path params ._.
           schema:
             type: string
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: History info
@@ -238,6 +253,7 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: Cape info
@@ -268,6 +284,7 @@ paths:
           description: Prefer animated version
           schema:
             type: boolean
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: Cape image
@@ -301,6 +318,7 @@ paths:
           description: Prefer animated version
           schema:
             type: boolean
+        - $ref: '#/components/parameters/userAgent'
       responses:
         200:
           description: Transformed Cape image
