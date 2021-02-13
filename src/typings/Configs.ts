@@ -7,10 +7,11 @@ interface MongoConfig {
     useTunnel: boolean;
     tunnel: SshTunnelConfig;
 
-    user: string;
-    pass: string;
-    address: string;
-    port: number;
+    url?: string;
+    user?: string;
+    pass?: string;
+    address?: string;
+    port?: number;
     database: string;
 }
 
