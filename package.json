@@ -30,7 +30,7 @@
     "express-git-puller": "2.0.4",
     "file-type": "14.6.2",
     "gifencoder": "2.0.1",
-    "hasha": "5.2.0",
+    "hasha": "5.2.2",
     "jobqu": "2.0.5",
     "metrics-node": "1.0.0",
     "mime-types": "2.1.27",
