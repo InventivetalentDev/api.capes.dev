@@ -18,11 +18,14 @@ export const apiRequestsMiddleware = (req: Request, res: Response, next: NextFun
             if (route) {
                 const path = route["path"];
                 if (path) {
-                    API_REQUESTS_METRIC
+                    const m = API_REQUESTS_METRIC
                         .tag("method", req.method)
                         .tag("path", path)
-                        .tag("status", `${res.statusCode}`)
-                        .inc();
+                        .tag("status", `${res.statusCode}`);
+                    if (req && req.headers) {
+                        m.tag("userAgent", req.headers["user-agent"] || "?");
+                    }
+                    m.inc();
                 }
             }
         } catch (e) {
