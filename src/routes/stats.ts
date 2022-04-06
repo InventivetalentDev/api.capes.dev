@@ -5,6 +5,7 @@ import { HAS_NO_CAPE } from "../util";
 import { Stats } from "../typings/Stats";
 import { metrics } from "../util/metrics";
 import { IPoint } from "influx";
+import { CapeType } from "../typings/CapeType";
 
 export const register = (app: Application) => {
 
@@ -22,14 +23,22 @@ export const register = (app: Application) => {
     async function queryStats(): Promise<void> {
         const totalCount = await Cape.countDocuments({ imageHash: { $ne: HAS_NO_CAPE } }).exec();
         const distinctPlayerCount = await Cape.aggregate([{ $group: { _id: "$player" } }, { $count: "count" }]).exec().then((docs: any[]) => docs[0]["count"]);
-        const perTypeCount = await Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
-            .then((perType: any[]) => {
-                let types: { [s: string]: number } = {};
-                for (let t of perType) {
-                    types[t["_id"]] = Math.floor(t["count"]);
-                }
-                return types;
-            });
+        // const perTypeCount = await Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
+        //     .then((perType: any[]) => {
+        //         let types: { [s: string]: number } = {};
+        //         for (let t of perType) {
+        //             types[t["_id"]] = Math.floor(t["count"]);
+        //         }
+        //         return types;
+        //     });
+
+        const perTypeCount: {[type: string]: number} = {};
+        const typePromises = [];
+        for (let type of Object.values(CapeType)) {
+            typePromises.push(Cape.count({ imageHash: { $ne: HAS_NO_CAPE }, type: type }).exec().then(c => perTypeCount[type] = c));
+        }
+        await Promise.all(typePromises);
+
 
         stats.total = totalCount;
         stats.players = distinctPlayerCount;
