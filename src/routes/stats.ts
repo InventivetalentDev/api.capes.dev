@@ -35,7 +35,7 @@ export const register = (app: Application) => {
         const perTypeCount: {[type: string]: number} = {};
         const typePromises = [];
         for (let type of Object.values(CapeType)) {
-            typePromises.push(Cape.count({ imageHash: { $ne: HAS_NO_CAPE }, type: type }).exec().then(c => perTypeCount[type] = c));
+            typePromises.push(Cape.countDocuments({ imageHash: { $ne: HAS_NO_CAPE }, type: type }).exec().then(c => perTypeCount[type] = c));
         }
         await Promise.all(typePromises);
 
