@@ -21,6 +21,8 @@ export const register = (app: Application) => {
 
 
     async function queryStats(): Promise<void> {
+        const start = Date.now();
+
         const totalCount = await Cape.countDocuments({ imageHash: { $ne: HAS_NO_CAPE } }).exec();
         const distinctPlayerCount = await Cape.aggregate([{ $group: { _id: "$player" } }, { $count: "count" }]).exec().then((docs: any[]) => docs[0]["count"]);
         // const perTypeCount = await Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
@@ -68,6 +70,8 @@ export const register = (app: Application) => {
         } catch (e) {
             Sentry.captureException(e);
         }
+
+        console.log("stats query took " + ((Date.now() - start) / 1000) + "s");
     }
 
     setInterval(() => queryStats(), 60000);
