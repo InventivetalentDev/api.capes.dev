@@ -80,7 +80,7 @@ export class CapeHandler {
             }
             existingCape.time = time;
             if (!existingCape.views) {
-                existingCape.views = 0;
+                existingCape.views = 1;
             }
             existingCape.views++;
             return {
