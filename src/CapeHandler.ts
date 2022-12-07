@@ -79,10 +79,14 @@ export class CapeHandler {
                 existingCape.firstTime = existingCape.time;
             }
             existingCape.time = time;
+            if (!existingCape.views) {
+                existingCape.views = 0;
+            }
+            existingCape.views++;
             return {
                 cape: Caching.cacheCape(await existingCape.save()),
                 changed: false
-            }
+            };
         } else {
             const capeHash = this.capeHash(imageHash, user.uuid, type, time);
             const capeSizeAndType = loadedCape ? bufferImageSize(loadedCape) : { width: 0, height: 0, type: "" };

@@ -16,6 +16,8 @@ export interface ICapeDocument extends Document {
     time: number;
     firstTime: number;
 
+    views: number;
+
     animated: boolean;
     animationFrames?: number;
     frameDelay?: number;

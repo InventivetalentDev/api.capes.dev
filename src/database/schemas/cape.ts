@@ -39,6 +39,9 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     firstTime: {
         type: Number
     },
+    views: {
+        type: Number
+    },
     animated: {
         type: Boolean
     },
