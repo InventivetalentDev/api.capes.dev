@@ -16,6 +16,9 @@ export const register = (app: Application) => {
         }
         player = player.replace(/-/g, "").toLowerCase();
 
+        let userAgent = req.header("user-agent");
+        console.log(`load request for ${ player } ${ type } from ${ userAgent }`)
+
         if (type === "all") {
             let promises: Promise<Maybe<LoadedCapeInfo>>[] = [];
             for (let type of SUPPORTED_TYPES) {
