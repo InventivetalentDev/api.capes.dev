@@ -25,7 +25,7 @@
     "canvas": "2.6.1",
     "chalk": "4.1.0",
     "cloudinary": "1.24.0",
-    "express": "4.17.1",
+    "express": "4.18.2",
     "express-async-errors": "3.1.1",
     "express-git-puller": "2.0.4",
     "file-type": "14.6.2",
@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@types/body-parser": "1.19.0",
-    "@types/express": "4.17.11",
+    "@types/express": "4.17.17",
     "@types/gifencoder": "2.0.0",
     "@types/node": "14.14.25",
     "@types/source-map-support": "0.5.3",
