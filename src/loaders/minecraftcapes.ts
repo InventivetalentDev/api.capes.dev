@@ -13,7 +13,7 @@ export default class MinecraftcapesCapeLoader extends CapeLoader {
         this.validateUuid(uuid);
         return this.loadCapeImage({
             method: "GET",
-            url: `https://minecraftcapes.net/profile/${ uuid }/cape`
+            url: `https://api.minecraftcapes.net/profile/${ uuid }/cape`
         });
     }
 
