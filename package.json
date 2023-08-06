@@ -22,7 +22,7 @@
     "axios": "0.21.1",
     "body-parser": "1.19.0",
     "buffer-image-size": "0.6.4",
-    "canvas": "2.6.1",
+    "canvas": "2.11.2",
     "chalk": "4.1.0",
     "cloudinary": "1.24.0",
     "express": "4.17.1",
