@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "@inventivetalent/gitsha": "1.0.0",
-    "@inventivetalent/loading-cache": "0.4.0",
+    "@inventivetalent/loading-cache": "0.6.9",
     "@inventivetalent/typescript-memoize": "1.0.0-alpha.5",
     "@sentry/node": "6.1.0",
     "@sentry/tracing": "6.1.0",
