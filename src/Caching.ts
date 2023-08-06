@@ -1,14 +1,14 @@
-import { AsyncLoadingCache, Caches, CacheStats, ICacheBase, SimpleCache, Time } from "@inventivetalent/loading-cache";
+import {AsyncLoadingCache, Caches, CacheStats, ICacheBase, SimpleCache, Time} from "@inventivetalent/loading-cache";
 import * as Sentry from "@sentry/node";
-import { Severity } from "@sentry/node";
-import { Requests } from "./Requests";
-import { User } from "./typings/User";
-import { Maybe, stripUuid } from "./util";
-import { ProfileProperty, ProfileResponse } from "./typings/ProfileResponse";
-import { ICapeDocument } from "./typings/ICapeDocument";
-import { Cape } from "./database/schemas/cape";
-import { AxiosRequestConfig, AxiosResponse } from "axios";
-import { CapeCacheKey } from "./typings/CapeCacheKey";
+import {Severity} from "@sentry/node";
+import {Requests} from "./Requests";
+import {User} from "./typings/User";
+import {Maybe, stripUuid} from "./util";
+import {ProfileProperty, ProfileResponse} from "./typings/ProfileResponse";
+import {ICapeDocument} from "./typings/ICapeDocument";
+import {Cape} from "./database/schemas/cape";
+import {AxiosRequestConfig, AxiosResponse} from "axios";
+import {CapeCacheKey} from "./typings/CapeCacheKey";
 
 export class Caching {
 
@@ -56,20 +56,20 @@ export class Caching {
         .expirationInterval(Time.minutes(1))
         .buildAsync<string, User>(uuid => {
             uuid = stripUuid(uuid);
-            return Requests.mojangApiRequest({
-                url: "/user/profiles/" + uuid + "/names"
+            return Requests.mojangSessionRequest({
+                url: "/session/minecraft/profile/" + uuid
             }).then(response => {
                 let d = {
                     valid: false,
                     uuid: uuid,
                     name: undefined
                 } as User;
-                if (response.data && response.data.length > 0) {
+                if (response.data && response.data.hasOwnProperty("name")) {
                     const body = response.data;
                     d = {
                         valid: true,
                         uuid: uuid,
-                        name: body[body.length - 1]["name"]
+                        name: body["name"]
                     } as User;
                     // update other cache
                     Caching.userByNameCache.put(d.name!.toLowerCase(), d);
