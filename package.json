@@ -33,7 +33,7 @@
     "hasha": "5.2.0",
     "jobqu": "2.0.5",
     "metrics-node": "1.0.0",
-    "mime-types": "2.1.27",
+    "mime-types": "2.1.35",
     "mongoose": "5.11.15",
     "source-map-support": "0.5.19",
     "tunnel-ssh": "4.1.4",
