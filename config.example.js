@@ -25,4 +25,9 @@ config.cloudinary = {
     preset: "capes_upload"
 };
 
+config.cloudflare = {
+    accountId: "idk",
+    apiToken: "idk"
+}
+
 module.exports = config;

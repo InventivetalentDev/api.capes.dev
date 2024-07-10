@@ -24,6 +24,7 @@ export interface CapesConfig {
 
     mongo: MongoConfig;
     cloudinary: CloudinaryConfig & { preset: string; };
+    cloudflare: {apiToken: string;accountId:string;};
     metrics: ISingleHostConfig;
     sentry: SentryConfig;
     puller: GitPullerOptions & { endpoint: string; };

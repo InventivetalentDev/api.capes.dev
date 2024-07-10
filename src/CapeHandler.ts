@@ -20,6 +20,8 @@ import { Coordinates, Size, Transforms } from "./typings";
 import { createCanvas, Image } from "canvas";
 import * as GIFEncoder from "gifencoder"
 import exp = require("constants");
+import { Blob, Buffer } from "buffer";
+import { Requests } from "./Requests";
 
 const config = getConfig();
 
@@ -49,7 +51,7 @@ export class CapeHandler {
         } else { // uuid
             capeQuery.player = player.toLowerCase();
         }
-        const existingCape = await Cape.findOne(capeQuery).sort({ time: -1 }).exec();
+        const existingCape = await Cape.findOne(capeQuery).sort({time: -1}).exec();
         if (existingCape) {
             if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
                 return {
@@ -89,14 +91,14 @@ export class CapeHandler {
             };
         } else {
             const capeHash = this.capeHash(imageHash, user.uuid, type, time);
-            const capeSizeAndType = loadedCape ? bufferImageSize(loadedCape) : { width: 0, height: 0, type: "" };
+            const capeSizeAndType = loadedCape ? bufferImageSize(loadedCape) : {width: 0, height: 0, type: ""};
 
             console.log(info(`Saving new ${ type } cape for ${ user.name } (${ capeHash } ${ capeSizeAndType.width }x${ capeSizeAndType.height })`));
             let animationFrames = -1;
             const frameDelay = await loader.frameDelay(user.uuid, user.name);
             if (loadedCape) {
                 console.log(debug(`Uploading ${ imageHash } to cloudinary...`));
-                await this.uploadImage(imageHash, type, loadedCape, undefined, { type: type });
+                await this.uploadImage(imageHash, type, loadedCape, undefined, {type: type});
                 const isAnimated = loader.supportsAnimation && await loader.isAnimated(capeSizeAndType.width, capeSizeAndType.height, user.uuid, user.name);
                 const coordinates = await loader.coordinates(isAnimated, user.uuid, user.name);
                 const aspectRatio = await loader.aspectRatio(isAnimated, user.uuid, user.name);
@@ -139,7 +141,10 @@ export class CapeHandler {
     static async handleStillCape(name: string, type: CapeType, aspectRatio: number, transforms: Transforms, dynamicCoordinates: boolean, capeSize: Size, buffer: Buffer): Promise<void> {
         for (let transform in transforms) {
             let coordinates = transforms[transform];
-            await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, capeSize, buffer, undefined, { type: type, transform: transform });
+            await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, capeSize, buffer, undefined, {
+                type: type,
+                transform: transform
+            });
         }
     }
 
@@ -164,7 +169,10 @@ export class CapeHandler {
             for (let transform in transforms) {
                 meta.transform = transform;
                 let coordinates = transforms[transform];
-                await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, { width: actualSize.width, height: expectedHeight }, animatedBuffer, "animated", "buffer");
+                await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, {
+                    width: actualSize.width,
+                    height: expectedHeight
+                }, animatedBuffer, "animated", "buffer");
             }
         } else {
             return this.handleStillCape(name, type, expectedAspectRatio, transforms, dynamicCoordinates, actualSize, buffer);
@@ -175,7 +183,9 @@ export class CapeHandler {
         const sourceImage = new Image();
         sourceImage.src = buffer;
 
-        const encoder: GIFEncoder & { out: any } = new GIFEncoder(actualSize.width, expectedHeight) as GIFEncoder & { out: any };
+        const encoder: GIFEncoder & { out: any } = new GIFEncoder(actualSize.width, expectedHeight) as GIFEncoder & {
+            out: any
+        };
 
         const out: Uint8Array[] = [];
         const readStream = encoder.createReadStream();
@@ -251,6 +261,13 @@ export class CapeHandler {
 
 
     static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
+        return (await Promise.all([
+            this.uploadImageCloudinary(name, type, buffer, suffix, meta),
+            this.uploadImageCloudflare(name, type, buffer, suffix, meta)
+        ]))[0];
+    }
+
+    static async uploadImageCloudinary(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
         const options: UploadApiOptions = {
             upload_preset: config.cloudinary.preset,
             public_id: name,
@@ -275,8 +292,43 @@ export class CapeHandler {
         })
     }
 
+    static async uploadImageCloudflare(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<any>> {
+        const formData = new FormData();
+        formData.append("file", new Blob([buffer]), name);
+
+        let publicId = name;
+        const metadata: any = {
+            "cape": type
+        };
+        if (suffix) {
+            publicId += "_" + suffix;
+            metadata["suffix"] = suffix;
+        }
+        if (meta) {
+            for (const key of Object.keys(meta)) {
+                metadata[key] = meta[key];
+            }
+        }
+
+        formData.append("id", publicId);
+        formData.append("metadata", JSON.stringify(metadata));
+
+        const res = await Requests.axiosInstance.request({
+            method: "POST",
+            url: `https://api.cloudflare.com/client/v4/accounts/${ config.cloudflare.accountId }/images/v1`,
+            headers: {
+                "Authorization": "Bearer " + config.cloudflare.apiToken,
+                "Content-Type": "multipart/form-data"
+            },
+            data: formData
+        });
+        console.log(res.data);
+        console.log(res.data.result);
+        return res;
+    }
+
     static async findCapeImageUrl(imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        const cape = await Cape.findOne({ imageHash: imageHash }, "hash imageHash extension animated").exec();
+        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash extension animated").exec();
         if (!cape) {
             return undefined;
         }
