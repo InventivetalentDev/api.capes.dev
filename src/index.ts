@@ -96,7 +96,8 @@ async function init() {
             }
             next();
         });
-        app.use(config.puller.endpoint, bodyParser.json({ limit: '100kb' }), puller.middleware);
+        //FIXME
+        // app.use(config.puller.endpoint, bodyParser.json({ limit: '100kb' }), puller.middleware);
     }
 
     {

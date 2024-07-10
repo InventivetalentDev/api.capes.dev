@@ -1,6 +1,5 @@
 import {AsyncLoadingCache, Caches, CacheStats, ICacheBase, SimpleCache, Time} from "@inventivetalent/loading-cache";
 import * as Sentry from "@sentry/node";
-import {Severity} from "@sentry/node";
 import {Requests} from "./Requests";
 import {User} from "./typings/User";
 import {Maybe, stripUuid} from "./util";
@@ -8,7 +7,6 @@ import {ProfileProperty, ProfileResponse} from "./typings/ProfileResponse";
 import {ICapeDocument} from "./typings/ICapeDocument";
 import {Cape} from "./database/schemas/cape";
 import {AxiosRequestConfig, AxiosResponse} from "axios";
-import {CapeCacheKey} from "./typings/CapeCacheKey";
 
 export class Caching {
 
@@ -39,7 +37,7 @@ export class Caching {
                 return d;
             }).catch(err => {
                 Sentry.captureException(err, {
-                    level: Severity.Warning,
+                    level: "warning",
                     tags: {
                         cache: "userByName"
                     }
@@ -77,7 +75,7 @@ export class Caching {
                 return d;
             }).catch(err => {
                 Sentry.captureException(err, {
-                    level: Severity.Warning,
+                    level: "warning",
                     tags: {
                         cache: "userByUuid"
                     }
@@ -104,7 +102,7 @@ export class Caching {
                 return body.properties[0] as ProfileProperty;
             }).catch(err => {
                 Sentry.captureException(err, {
-                    level: Severity.Warning,
+                    level: "warning",
                     tags: {
                         cache: "userProfile"
                     }

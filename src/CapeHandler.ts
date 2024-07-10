@@ -20,7 +20,9 @@ import { Coordinates, Size, Transforms } from "./typings";
 import { createCanvas, Image } from "canvas";
 import * as GIFEncoder from "gifencoder"
 import exp = require("constants");
-import { Blob, Buffer } from "buffer";
+import { Blob } from "buffer";
+import { Buffer } from "node:buffer";
+import * as FormData from "form-data";
 import { Requests } from "./Requests";
 
 const config = getConfig();
