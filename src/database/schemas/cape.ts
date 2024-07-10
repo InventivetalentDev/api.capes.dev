@@ -57,7 +57,8 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
         index: true
     },
     width: Number,
-    height: Number
+    height: Number,
+    cdn: String
 });
 
 
