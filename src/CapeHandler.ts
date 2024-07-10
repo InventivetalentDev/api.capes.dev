@@ -340,8 +340,6 @@ export class CapeHandler {
                 },
                 data: formData
             });
-            console.log(res.data);
-            console.log(res.data.result);
             return true;
         } catch (e) {
             if (e.response) {
