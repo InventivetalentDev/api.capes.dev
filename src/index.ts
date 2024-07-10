@@ -1,3 +1,5 @@
+import "./instrument"
+
 import * as Sentry from "@sentry/node";
 import * as Tracing from "@sentry/tracing";
 import * as sourceMapSupport from "source-map-support";
@@ -30,23 +32,6 @@ const app: Express = express();
 
 async function init() {
     console.log("Node Version " + process.version);
-
-    {
-        console.log("Initializing Sentry")
-        Sentry.init({
-            dsn: config.sentry.dsn,
-            release: await gitsha(),
-            integrations: [
-                new Sentry.Integrations.Http({ tracing: true }),
-                new Tracing.Integrations.Express({ app })
-            ],
-            tracesSampleRate: 0.02,
-            sampleRate: 0.5
-        });
-
-        app.use(Sentry.Handlers.requestHandler());
-        app.use(Sentry.Handlers.tracingHandler());
-    }
 
     {
         console.log("Initializing Cloudinary");
@@ -162,7 +147,7 @@ async function init() {
         next(err);
     };
     app.use(preErrorHandler);
-    app.use(Sentry.Handlers.errorHandler());
+    Sentry.setupExpressErrorHandler(app);
     const errorHandler: ErrorRequestHandler = (err, req: Request, res: Response, next: NextFunction) => {
         if (err instanceof CapeError) {
             res.json({
