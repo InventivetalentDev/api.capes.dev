@@ -17,7 +17,7 @@ import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from "clo
 import { UploadApiOptions } from "cloudinary";
 import { getConfig } from "./typings/Configs";
 import { Coordinates, Size, Transforms } from "./typings";
-import { createCanvas, Image } from "canvas";
+import { CanvasRenderingContext2D, createCanvas, Image } from "canvas";
 import * as GIFEncoder from "gifencoder"
 import exp = require("constants");
 import { Blob } from "buffer";
@@ -210,7 +210,7 @@ export class CapeHandler {
                 firstFrameCallback(canvas.toBuffer());
                 firstFrameCallback = undefined;
             }
-            encoder.addFrame(context);
+            encoder.addFrame(context as any); //FIXME: seems like the encoder library is outdated
         }
         encoder.finish();
 

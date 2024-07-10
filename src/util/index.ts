@@ -37,5 +37,5 @@ export function formatMeta(meta: any) {
 }
 
 export function getIp(req: Request): string {
-    return req.get('cf-connecting-ip') || req.get('x-forwarded-for') || req.get("x-real-ip") || req.connection.remoteAddress || req.ip;
+    return req.get('cf-connecting-ip') || req.get('x-forwarded-for') || req.get("x-real-ip") || req.connection.remoteAddress || req.ip || "";
 }
