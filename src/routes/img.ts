@@ -11,13 +11,6 @@ export const register = (app: Application) => {
         await findAndSendCapeImage(req, res, hash, undefined, typeof req.query["still"] !== "undefined", typeof req.query["animated"] !== "undefined");
     });
 
-    app.get("/cfimg/:hash", async function (req: Request, res: Response) {
-        let hash = req.params.hash;
-        hash = hash.split(".")[0]; // Remove potential file extensions
-
-        await findAndSendCapeImage(req, res, hash, undefined, typeof req.query["still"] !== "undefined", typeof req.query["animated"] !== "undefined", true);
-    });
-
     app.get("/img/:transform/:hash", async function (req: Request, res: Response) {
         let transform = req.params.transform;
         let hash = req.params.hash;
@@ -26,18 +19,8 @@ export const register = (app: Application) => {
         await findAndSendCapeImage(req, res, hash, transform, typeof req.query["still"] !== "undefined", typeof req.query["animated"] !== "undefined");
     });
 
-    app.get("/cfimg/:transform/:hash", async function (req: Request, res: Response) {
-        let transform = req.params.transform;
-        let hash = req.params.hash;
-        hash = hash.split(".")[0]; // Remove potential file extensions
-
-        await findAndSendCapeImage(req, res, hash, transform, typeof req.query["still"] !== "undefined", typeof req.query["animated"] !== "undefined", true);
-    });
-
-    async function findAndSendCapeImage(req: Request, res: Response, imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false, cloudflare = false): Promise<void> {
-        const imageUrl = cloudflare ?
-            await CapeHandler.findCloudflareCapeImageUrl(imageHash, transform, preferStill, preferAnimated) :
-            await CapeHandler.findCapeImageUrl(imageHash, transform, preferStill, preferAnimated);
+    async function findAndSendCapeImage(req: Request, res: Response, imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<void> {
+        const imageUrl = await CapeHandler.findCapeImageUrl(imageHash, transform, preferStill, preferAnimated);
         if (!imageUrl) {
             res.status(404).json({error: "not found"});
         } else {
@@ -54,7 +37,7 @@ export const register = (app: Application) => {
                 } else {
                     console.warn(err);
                     res.status(500).json({error: "failed to load cape image"});
-                    if(err.response) {
+                    if (err.response) {
                         console.warn(err.response.data);
                         console.warn(err.response.errors);
                     }

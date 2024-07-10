@@ -98,9 +98,14 @@ export class CapeHandler {
             console.log(info(`Saving new ${ type } cape for ${ user.name } (${ capeHash } ${ capeSizeAndType.width }x${ capeSizeAndType.height })`));
             let animationFrames = -1;
             const frameDelay = await loader.frameDelay(user.uuid, user.name);
+            let cdn = undefined;
             if (loadedCape) {
-                console.log(debug(`Uploading ${ imageHash } to cloudinary...`));
-                await this.uploadImage(imageHash, type, loadedCape, undefined, {type: type});
+                console.log(debug(`Uploading base ${ imageHash }...`));
+                const cdnUpload = await this.uploadImage(imageHash, type, loadedCape, undefined, {type: type});
+                console.log(debug(`Uploaded base ${ imageHash } to ${ cdnUpload }`));
+                if (cdnUpload) {
+                    cdn = cdnUpload;
+                }
                 const isAnimated = loader.supportsAnimation && await loader.isAnimated(capeSizeAndType.width, capeSizeAndType.height, user.uuid, user.name);
                 const coordinates = await loader.coordinates(isAnimated, user.uuid, user.name);
                 const aspectRatio = await loader.aspectRatio(isAnimated, user.uuid, user.name);
@@ -127,7 +132,7 @@ export class CapeHandler {
                 imageHash: imageHash,
                 width: capeSizeAndType.width || 0,
                 height: capeSizeAndType.height || 0,
-                cdn: "cloudflare"
+                cdn: cdn
             });
             if (animationFrames > 0) {
                 cape.animationFrames = animationFrames;
@@ -167,7 +172,9 @@ export class CapeHandler {
                 type: type,
                 animated: true
             };
-            await this.uploadImage(name, type, animatedBuffer, "animated", meta);
+            console.log(debug(`Uploading animated ${ name }...`));
+            const cdnUpload = await this.uploadImage(name, type, animatedBuffer, "animated", meta);
+            console.log(debug(`Uploaded animated ${ name } to ${ cdnUpload }`));
 
             for (let transform in transforms) {
                 meta.transform = transform;
@@ -263,17 +270,21 @@ export class CapeHandler {
     }
 
 
-    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
-        const res = await this.uploadImageCloudinary(name, type, buffer, suffix, meta);
+    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<'cloudflare' | 'cloudinary' | false> {
         try {
-            await this.uploadImageCloudflare(name, type, buffer, suffix, meta)
+            if (await this.uploadImageCloudflare(name, type, buffer, suffix, meta)) {
+                return 'cloudflare';
+            }
         } catch (e) {
             console.log(e)
         }
-        return res;
+        if (await this.uploadImageCloudinary(name, type, buffer, suffix, meta)) {
+            return 'cloudinary';
+        }
+        return false;
     }
 
-    static async uploadImageCloudinary(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
+    static async uploadImageCloudinary(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
         const options: UploadApiOptions = {
             upload_preset: config.cloudinary.preset,
             public_id: name,
@@ -292,13 +303,13 @@ export class CapeHandler {
                     Sentry.captureException(err);
                     resolve(undefined);
                 } else {
-                    resolve(result);
+                    resolve(true);
                 }
             }).end(buffer);
         })
     }
 
-    static async uploadImageCloudflare(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<any>> {
+    static async uploadImageCloudflare(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
         const formData = new FormData();
         formData.append("file", buffer, name);
 
@@ -331,22 +342,28 @@ export class CapeHandler {
             });
             console.log(res.data);
             console.log(res.data.result);
-            return res;
+            return true;
         } catch (e) {
             if (e.response) {
                 console.log(e.response.data)
                 console.log(e.response.errors);
             }
         }
-        return null;//FIXME
+        return false;
     }
 
     static async findCapeImageUrl(imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash extension animated").exec();
+        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash type width height extension animated cdn").exec();
         if (!cape) {
             return undefined;
         }
+        if ('cloudflare' === cape.cdn) {
+            return this.findCloudflareCapeImageUrl(cape, transform, preferStill, preferAnimated);
+        }
+        return this.findCapeImageUrlCloudinary(cape, transform, preferStill, preferAnimated);
+    }
 
+    static async findCapeImageUrlCloudinary(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
         let file = cape.imageHash;
         const options: any = {};
         if (transform) {
@@ -363,12 +380,7 @@ export class CapeHandler {
         return this.imageUrl(file, options);
     }
 
-    static async findCloudflareCapeImageUrl(imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash type width height extension animated").exec();
-        if (!cape) {
-            return undefined;
-        }
-
+    static async findCloudflareCapeImageUrl(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
         let file = cape.imageHash;
         if (cape.animated) {
             file += "_animated";
