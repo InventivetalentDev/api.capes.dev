@@ -14,6 +14,10 @@ const config = getConfig();
            nodeProfilingIntegration()
         ],
         tracesSampleRate: 0.02,
-        sampleRate: 0.5
+        sampleRate: 0.5,
+        ignoreErrors: [
+            "invalid_player",
+            "failed with status code 404"
+        ]
     });
 })();
