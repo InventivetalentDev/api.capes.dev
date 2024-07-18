@@ -24,6 +24,8 @@ export interface ICapeDocument extends Document {
 
     width: number;
     height: number;
+
+    cdn?: string;
 }
 
 export interface ICapeModel extends Model<ICapeDocument> {

@@ -22,7 +22,7 @@ export const register = (app: Application) => {
     async function findAndSendCapeImage(req: Request, res: Response, imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<void> {
         const imageUrl = await CapeHandler.findCapeImageUrl(imageHash, transform, preferStill, preferAnimated);
         if (!imageUrl) {
-            res.status(404).json({ error: "not found" });
+            res.status(404).json({error: "not found"});
         } else {
             res.header("X-Image-Location", imageUrl);
             Requests.axiosInstance.request({
@@ -33,10 +33,14 @@ export const register = (app: Application) => {
                 response.data.pipe(res);
             }).catch(err => {
                 if (err.response.status === 404) {
-                    res.status(404).json({ error: "cape image not found" });
+                    res.status(404).json({error: "cape image not found"});
                 } else {
                     console.warn(err);
-                    res.status(500).json({ error: "failed to load cape image" });
+                    res.status(500).json({error: "failed to load cape image"});
+                    if (err.response) {
+                        console.warn(err.response.data);
+                        console.warn(err.response.errors);
+                    }
                 }
             })
         }

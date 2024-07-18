@@ -17,9 +17,13 @@ import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from "clo
 import { UploadApiOptions } from "cloudinary";
 import { getConfig } from "./typings/Configs";
 import { Coordinates, Size, Transforms } from "./typings";
-import { createCanvas, Image } from "canvas";
+import { CanvasRenderingContext2D, createCanvas, Image } from "canvas";
 import * as GIFEncoder from "gifencoder"
 import exp = require("constants");
+import { Blob } from "buffer";
+import { Buffer } from "node:buffer";
+import * as FormData from "form-data";
+import { Requests } from "./Requests";
 
 const config = getConfig();
 
@@ -49,7 +53,7 @@ export class CapeHandler {
         } else { // uuid
             capeQuery.player = player.toLowerCase();
         }
-        const existingCape = await Cape.findOne(capeQuery).sort({ time: -1 }).exec();
+        const existingCape = await Cape.findOne(capeQuery).sort({time: -1}).exec();
         if (existingCape) {
             if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
                 return {
@@ -89,14 +93,19 @@ export class CapeHandler {
             };
         } else {
             const capeHash = this.capeHash(imageHash, user.uuid, type, time);
-            const capeSizeAndType = loadedCape ? bufferImageSize(loadedCape) : { width: 0, height: 0, type: "" };
+            const capeSizeAndType = loadedCape ? bufferImageSize(loadedCape) : {width: 0, height: 0, type: ""};
 
             console.log(info(`Saving new ${ type } cape for ${ user.name } (${ capeHash } ${ capeSizeAndType.width }x${ capeSizeAndType.height })`));
             let animationFrames = -1;
             const frameDelay = await loader.frameDelay(user.uuid, user.name);
+            let cdn = undefined;
             if (loadedCape) {
-                console.log(debug(`Uploading ${ imageHash } to cloudinary...`));
-                await this.uploadImage(imageHash, type, loadedCape, undefined, { type: type });
+                console.log(debug(`Uploading base ${ imageHash }...`));
+                const cdnUpload = await this.uploadImage(imageHash, type, loadedCape, undefined, {type: type});
+                console.log(debug(`Uploaded base ${ imageHash } to ${ cdnUpload }`));
+                if (cdnUpload) {
+                    cdn = cdnUpload;
+                }
                 const isAnimated = loader.supportsAnimation && await loader.isAnimated(capeSizeAndType.width, capeSizeAndType.height, user.uuid, user.name);
                 const coordinates = await loader.coordinates(isAnimated, user.uuid, user.name);
                 const aspectRatio = await loader.aspectRatio(isAnimated, user.uuid, user.name);
@@ -122,7 +131,8 @@ export class CapeHandler {
                 extension: capeSizeAndType.type,
                 imageHash: imageHash,
                 width: capeSizeAndType.width || 0,
-                height: capeSizeAndType.height || 0
+                height: capeSizeAndType.height || 0,
+                cdn: cdn
             });
             if (animationFrames > 0) {
                 cape.animationFrames = animationFrames;
@@ -139,7 +149,10 @@ export class CapeHandler {
     static async handleStillCape(name: string, type: CapeType, aspectRatio: number, transforms: Transforms, dynamicCoordinates: boolean, capeSize: Size, buffer: Buffer): Promise<void> {
         for (let transform in transforms) {
             let coordinates = transforms[transform];
-            await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, capeSize, buffer, undefined, { type: type, transform: transform });
+            await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, capeSize, buffer, undefined, {
+                type: type,
+                transform: transform
+            });
         }
     }
 
@@ -159,12 +172,17 @@ export class CapeHandler {
                 type: type,
                 animated: true
             };
-            await this.uploadImage(name, type, animatedBuffer, "animated", meta);
+            console.log(debug(`Uploading animated ${ name }...`));
+            const cdnUpload = await this.uploadImage(name, type, animatedBuffer, "animated", meta);
+            console.log(debug(`Uploaded animated ${ name } to ${ cdnUpload }`));
 
             for (let transform in transforms) {
                 meta.transform = transform;
                 let coordinates = transforms[transform];
-                await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, { width: actualSize.width, height: expectedHeight }, animatedBuffer, "animated", "buffer");
+                await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, {
+                    width: actualSize.width,
+                    height: expectedHeight
+                }, animatedBuffer, "animated", "buffer");
             }
         } else {
             return this.handleStillCape(name, type, expectedAspectRatio, transforms, dynamicCoordinates, actualSize, buffer);
@@ -175,7 +193,9 @@ export class CapeHandler {
         const sourceImage = new Image();
         sourceImage.src = buffer;
 
-        const encoder: GIFEncoder & { out: any } = new GIFEncoder(actualSize.width, expectedHeight) as GIFEncoder & { out: any };
+        const encoder: GIFEncoder & { out: any } = new GIFEncoder(actualSize.width, expectedHeight) as GIFEncoder & {
+            out: any
+        };
 
         const out: Uint8Array[] = [];
         const readStream = encoder.createReadStream();
@@ -198,7 +218,7 @@ export class CapeHandler {
                 firstFrameCallback(canvas.toBuffer());
                 firstFrameCallback = undefined;
             }
-            encoder.addFrame(context);
+            encoder.addFrame(context as any); //FIXME: seems like the encoder library is outdated
         }
         encoder.finish();
 
@@ -250,7 +270,21 @@ export class CapeHandler {
     }
 
 
-    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
+    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<'cloudflare' | 'cloudinary' | false> {
+        try {
+            if (await this.uploadImageCloudflare(name, type, buffer, suffix, meta)) {
+                return 'cloudflare';
+            }
+        } catch (e) {
+            console.log(e)
+        }
+        if (await this.uploadImageCloudinary(name, type, buffer, suffix, meta)) {
+            return 'cloudinary';
+        }
+        return false;
+    }
+
+    static async uploadImageCloudinary(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
         const options: UploadApiOptions = {
             upload_preset: config.cloudinary.preset,
             public_id: name,
@@ -269,18 +303,65 @@ export class CapeHandler {
                     Sentry.captureException(err);
                     resolve(undefined);
                 } else {
-                    resolve(result);
+                    resolve(true);
                 }
             }).end(buffer);
         })
     }
 
+    static async uploadImageCloudflare(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
+        const formData = new FormData();
+        formData.append("file", buffer, name);
+
+        let publicId = name;
+        const metadata: any = {
+            "cape": type
+        };
+        if (suffix) {
+            publicId += "_" + suffix;
+            metadata["suffix"] = suffix;
+        }
+        if (meta) {
+            for (const key of Object.keys(meta)) {
+                metadata[key] = meta[key];
+            }
+        }
+
+        formData.append("id", `capes/${ publicId }`);
+        formData.append("metadata", JSON.stringify(metadata));
+
+        try {
+            const res = await Requests.axiosInstance.request({
+                method: "POST",
+                url: `https://api.cloudflare.com/client/v4/accounts/${ config.cloudflare.accountId }/images/v1`,
+                headers: {
+                    "Authorization": "Bearer " + config.cloudflare.apiToken,
+                    "Content-Type": `multipart/form-data; boundary=${ formData.getBoundary() }`,
+                },
+                data: formData
+            });
+            return true;
+        } catch (e) {
+            if (e.response) {
+                console.log(e.response.data)
+                console.log(e.response.errors);
+            }
+        }
+        return false;
+    }
+
     static async findCapeImageUrl(imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        const cape = await Cape.findOne({ imageHash: imageHash }, "hash imageHash extension animated").exec();
+        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash type width height extension animated cdn").exec();
         if (!cape) {
             return undefined;
         }
+        if ('cloudflare' === cape.cdn) {
+            return this.findCloudflareCapeImageUrl(cape, transform, preferStill, preferAnimated);
+        }
+        return this.findCapeImageUrlCloudinary(cape, transform, preferStill, preferAnimated);
+    }
 
+    static async findCapeImageUrlCloudinary(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
         let file = cape.imageHash;
         const options: any = {};
         if (transform) {
@@ -295,6 +376,49 @@ export class CapeHandler {
             // Otherwise reply with the full size original cape image, including all the frames
         }
         return this.imageUrl(file, options);
+    }
+
+    static async findCloudflareCapeImageUrl(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
+        let file = cape.imageHash;
+        if (cape.animated) {
+            file += "_animated";
+        }
+
+        let url = `https://imagedelivery.net/${ config.cloudflare.accountHash }/capes/${ file }`;
+
+        let usePublic = true;
+        if (transform) {
+            // trim format: top;right;bottom;left
+            const coordinates = await LOADERS[cape.type].coordinates();
+            if (coordinates[transform]) {
+                let [left, top, width, height] = coordinates[transform];
+
+                top = Math.max(0, Math.round(cape.height * top));
+                left = Math.max(0, Math.round(cape.width * left));
+                width = Math.min(cape.width, Math.max(1, Math.round(cape.width * width)));
+                height = Math.min(cape.height, Math.max(1, Math.round(cape.height * height)));
+
+                const right = Math.max(0, cape.width - left - width);
+                const bottom = Math.max(0, cape.height - top - height);
+
+                url += `/trim=${ top };${ right };${ bottom };${ left }`;
+                usePublic = false;
+            }
+        }
+        if (cape.animated) {
+            if (preferStill) { // Reply with the first frame of the animation, cropped to regular dimensions
+                url += `,anim=false`
+                usePublic = false;
+            } else if (preferAnimated) { // Reply with animation, cropped to regular dimensions
+            }
+            // Otherwise reply with the full size original cape image, including all the frames
+        }
+
+        if (usePublic) {
+            url += `/public`;
+        }
+
+        return url;
     }
 
     static imageUrl(name: string, options: any): string {
