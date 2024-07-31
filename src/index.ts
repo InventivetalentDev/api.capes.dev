@@ -238,6 +238,7 @@ async function migrateCapeToCloudflare() {
             }
 
             let success = false;
+            let skip = false;
             if (res && res.data.success) {
                 success = true;
             } else {
@@ -251,15 +252,23 @@ async function migrateCapeToCloudflare() {
                         // already on cloudflare
                         success = true;
                     }
+                    if (error.message.includes('Error during the fetch, code: 404')) {
+                        // image not found
+                        skip = true;
+                    }
                 }
             }
 
-            if (success) {
+            if (success || skip) {
                 console.log("Migrated cape " + cape.id);
                 cape.cdn = "cloudflare";
-                await cape.save();
+                if (skip) {
+                    await cape.delete();
+                } else {
+                    await cape.save();
+                }
 
-                await cloudinary.uploader.destroy(`capes/${cape.imageHash}`, (error, result) => {
+                await cloudinary.uploader.destroy(`capes/${ cape.imageHash }`, (error, result) => {
                     if (error) {
                         console.error("Failed to delete old cape " + cape.imageHash);
                         console.error(error);
