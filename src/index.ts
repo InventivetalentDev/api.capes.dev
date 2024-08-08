@@ -277,6 +277,14 @@ async function migrateCapeToCloudflare() {
                         console.log(result);
                     }
                 });
+
+                await Cape.updateMany({
+                    imageHash: cape.imageHash
+                }, {
+                    $set: {
+                        cdn: "cloudflare"
+                    }
+                })
             } else {
                 console.error("Failed to migrate cape " + cape.id);
             }
