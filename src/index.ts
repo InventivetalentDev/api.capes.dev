@@ -174,7 +174,7 @@ async function init() {
     console.log("starting cloudflare migration task");
     setInterval(async () => {
         await migrateCapeToCloudflare();
-    }, 1000 * 25);
+    }, 1000 * 5);
     await migrateCapeToCloudflare();
 }
 
