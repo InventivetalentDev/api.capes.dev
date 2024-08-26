@@ -20,7 +20,6 @@ import { Coordinates, Size, Transforms } from "./typings";
 import { CanvasRenderingContext2D, createCanvas, Image } from "canvas";
 import * as GIFEncoder from "gifencoder"
 import exp = require("constants");
-import { Blob } from "buffer";
 import { Buffer } from "node:buffer";
 import * as FormData from "form-data";
 import { Requests } from "./Requests";
@@ -115,9 +114,6 @@ export class CapeHandler {
                     await this.handleAnimatedCape(imageHash, type, aspectRatio, dynamicCoordinates, capeSizeAndType, frameDelay, coordinates, loadedCape, frames => {
                         animationFrames = frames;
                     })
-                } else {
-                    console.log(debug(`Handling still cape`));
-                    await this.handleStillCape(imageHash, type, aspectRatio, coordinates, dynamicCoordinates, capeSizeAndType, loadedCape);
                 }
             }
             const cape = new Cape(<ICapeDocument>{
@@ -146,16 +142,6 @@ export class CapeHandler {
         }
     }
 
-    static async handleStillCape(name: string, type: CapeType, aspectRatio: number, transforms: Transforms, dynamicCoordinates: boolean, capeSize: Size, buffer: Buffer): Promise<void> {
-        for (let transform in transforms) {
-            let coordinates = transforms[transform];
-            await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, capeSize, buffer, undefined, {
-                type: type,
-                transform: transform
-            });
-        }
-    }
-
     static async handleAnimatedCape(name: string, type: CapeType, expectedAspectRatio: number, dynamicCoordinates: boolean, actualSize: Size, frameDelay: number, transforms: Transforms, buffer: Buffer, framesCallback?: (heightMultiplier: number) => void): Promise<void> {
         let actualAspectRatio = actualSize.width / actualSize.height;
         let expectedHeight = actualSize.width / expectedAspectRatio;
@@ -175,17 +161,6 @@ export class CapeHandler {
             console.log(debug(`Uploading animated ${ name }...`));
             const cdnUpload = await this.uploadImage(name, type, animatedBuffer, "animated", meta);
             console.log(debug(`Uploaded animated ${ name } to ${ cdnUpload }`));
-
-            for (let transform in transforms) {
-                meta.transform = transform;
-                let coordinates = transforms[transform];
-                await this.uploadTransformImage(name, type, transform, coordinates, dynamicCoordinates, {
-                    width: actualSize.width,
-                    height: expectedHeight
-                }, animatedBuffer, "animated", "buffer");
-            }
-        } else {
-            return this.handleStillCape(name, type, expectedAspectRatio, transforms, dynamicCoordinates, actualSize, buffer);
         }
     }
 
@@ -223,50 +198,6 @@ export class CapeHandler {
         encoder.finish();
 
         return promise;
-    }
-
-
-    static async uploadTransformImage(name: string, type: string, transform: string, transformation: Coordinates | ((size: Size) => Coordinates), dynamic: boolean, size: Size, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<UploadApiResponse>> {
-        if (typeof transformation === "function") {
-            transformation = transformation(size);
-        }
-
-        const options: UploadApiOptions = {
-            upload_preset: config.cloudinary.preset,
-            public_id: name + "_" + transform,
-            tags: ["cape", type, transform]
-        };
-        if (suffix) {
-            options.public_id += "_" + suffix;
-            options.tags.push(suffix);
-        }
-        if (meta) {
-            options.context = formatMeta(meta);
-        }
-        if (!dynamic) {
-            // use cloudinary preset
-            options.transformation = "cape_" + transform + "_" + type;
-        } else {
-            // calculate based on dimensions
-            options.transformation = {
-                gravity: "north_west",
-                x: Math.max(0, Math.round(size.width * transformation[0])),
-                y: Math.max(0, Math.round(size.height * transformation[1])),
-                width: Math.min(size.width, Math.round(size.width * transformation[2])),
-                height: Math.min(size.height, Math.round(size.height * transformation[3])),
-                crop: "crop"
-            }
-        }
-        return new Promise(resolve => {
-            cloudinary.uploader.upload_stream(options, (err?: UploadApiErrorResponse, result?: UploadApiResponse) => {
-                if (err) {
-                    Sentry.captureException(err);
-                    resolve(undefined);
-                } else {
-                    resolve(result);
-                }
-            }).end(buffer);
-        })
     }
 
 
