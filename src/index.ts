@@ -171,11 +171,11 @@ async function init() {
     app.use(errorHandler);
 
 
-    console.log("starting cloudflare migration task");
-    setInterval(async () => {
-        await migrateCapeToCloudflare();
-    }, 1000 * 5);
-    await migrateCapeToCloudflare();
+    // console.log("starting cloudflare migration task");
+    // setInterval(async () => {
+    //     await migrateCapeToCloudflare();
+    // }, 1000 * 5);
+    // await migrateCapeToCloudflare();
 }
 
 async function migrateCapeToCloudflare() {
