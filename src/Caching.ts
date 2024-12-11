@@ -17,15 +17,15 @@ export class Caching {
         .expirationInterval(Time.minutes(1))
         .buildAsync<string, User>(name => {
             return Requests.mojangApiRequest({
-                url: "/users/profiles/minecraft/" + name,
+                url: "https://mcproxy.dev/name-to-uuid/" + name,
             }).then(response => {
                 let d = {
                     valid: false,
                     uuid: undefined,
                     name: name
                 } as User;
-                if (response.data && response.data.hasOwnProperty("id")) {
-                    const body = response.data;
+                if (response.data && response.data.data && response.data.data.hasOwnProperty("id")) {
+                    const body = response.data.data;
                     d = {
                         valid: true,
                         uuid: body["id"],
@@ -54,23 +54,23 @@ export class Caching {
         .expirationInterval(Time.minutes(1))
         .buildAsync<string, User>(uuid => {
             uuid = stripUuid(uuid);
-            return Requests.mojangSessionRequest({
-                url: "/session/minecraft/profile/" + uuid
+            return Requests.mojangApiRequest({
+                url: "https://mcproxy.dev/uuid-to-name/" + uuid,
             }).then(response => {
                 let d = {
                     valid: false,
                     uuid: uuid,
                     name: undefined
                 } as User;
-                if (response.data && response.data.hasOwnProperty("name")) {
-                    const body = response.data;
+                if (response.data && response.data.data && response.data.data.hasOwnProperty("id")) {
+                    const body = response.data.data;
                     d = {
                         valid: true,
-                        uuid: uuid,
+                        uuid: body["id"],
                         name: body["name"]
                     } as User;
                     // update other cache
-                    Caching.userByNameCache.put(d.name!.toLowerCase(), d);
+                    Caching.userByUuidCache.put(d.uuid!, d);
                 }
                 return d;
             }).catch(err => {
