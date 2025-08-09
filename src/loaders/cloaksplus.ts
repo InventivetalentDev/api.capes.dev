@@ -16,4 +16,15 @@ export default class CloaksPlusCapeLoader extends CapeLoader {
             url: `http://161.35.130.99/capes/${ name }.png`
         });
     }
+
+    aspectRatio() {
+        return 92 / 44;
+    }
+
+    coordinates() {
+        return {
+            front: [1 / 46, 1 / 22, 10 / 46, 16 / 22]
+        }
+    }
+
 }
