@@ -6,5 +6,4 @@ export enum CapeType {
     FIVE_ZIG = "5zig",
     TLAUNCHER = "tlauncher",
     SKINMC = "skinmc",
-    CLOAKSPLUS = "cloaksplus",
 }
