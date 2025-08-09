@@ -4,5 +4,6 @@ export enum CapeType {
     MINECRAFTCAPES = "minecraftcapes",
     LABYMOD = "labymod",
     FIVE_ZIG = "5zig",
-    TLAUNCHER = "tlauncher"
+    TLAUNCHER = "tlauncher",
+    SKINMC = "skinmc",
 }
