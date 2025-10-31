@@ -3,13 +3,13 @@ import { Maybe } from "../util";
 import { Caching } from "../Caching";
 import { TextureInfo } from "../typings/ProfileResponse";
 
-export  default class MinecraftCapeLoader extends CapeLoader {
+export default class MinecraftCapeLoader extends CapeLoader {
 
     constructor() {
         super("minecraft");
     }
 
-    fetchCape(name: string, uuid: string): Promise<Maybe<Buffer>> {
+    fetchCape(name: string, uuid: string, extraData: Record<string, string>): Promise<Maybe<Buffer>> {
         this.validateUuid(uuid);
 
         return Caching.getUserProfile(uuid).then(profile => {
@@ -18,6 +18,7 @@ export  default class MinecraftCapeLoader extends CapeLoader {
             if (textureInfo.textures && textureInfo.textures.CAPE) {
                 const cape = textureInfo.textures.CAPE;
                 if (cape.url) {
+                    extraData.url = cape.url;
                     return this.loadCapeImage({
                         url: cape.url
                     });

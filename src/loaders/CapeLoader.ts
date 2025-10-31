@@ -12,7 +12,7 @@ export abstract class CapeLoader {
         console.log(debug(`Registered ${ type } cape loader in ${ (<any>this).constructor.name }`));
     }
 
-    abstract fetchCape(name: string, uuid: string): Promise<Maybe<Buffer>>;
+    abstract fetchCape(name: string, uuid: string, extraData: Record<string, string>): Promise<Maybe<Buffer>>;
 
     async loadCapeImage(request: AxiosRequestConfig): Promise<Maybe<Buffer>> {
         request.responseType = "arraybuffer";

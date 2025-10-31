@@ -26,6 +26,8 @@ export interface ICapeDocument extends Document {
     height: number;
 
     cdn?: string;
+
+    extraData?: Record<string, any>;
 }
 
 export interface ICapeModel extends Model<ICapeDocument> {

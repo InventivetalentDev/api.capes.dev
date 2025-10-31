@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 import { ICapeDocument, ICapeModel } from "../../typings/ICapeDocument";
 import { CapeType } from "../../typings/CapeType";
-import { Maybe } from "../../util";
 
 
 export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
@@ -58,7 +57,8 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     },
     width: Number,
     height: Number,
-    cdn: String
+    cdn: String,
+    extraData: Schema.Types.Mixed
 });
 
 

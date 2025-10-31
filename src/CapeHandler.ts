@@ -73,7 +73,8 @@ export class CapeHandler {
 
         console.log(info(`Loading ${ type } cape for ${ user.name } (${ user.uuid })`));
 
-        const loadedCape = await loader.fetchCape(user.name, user.uuid);
+        const extraData: Record<string, string> = {};
+        const loadedCape = await loader.fetchCape(user.name, user.uuid, extraData);
         const time = Math.floor(Date.now() / 1000);
         const imageHash = loadedCape ? hasha(loadedCape) : HAS_NO_CAPE;
         if (existingCape && imageHash === existingCape.imageHash) {
@@ -86,6 +87,9 @@ export class CapeHandler {
                 existingCape.views = 1;
             }
             existingCape.views++;
+            if (Object.keys(extraData).length > 0) {
+                existingCape.extraData = extraData;
+            }
             return {
                 cape: Caching.cacheCape(await existingCape.save()),
                 changed: false
@@ -134,6 +138,9 @@ export class CapeHandler {
                 cape.animationFrames = animationFrames;
                 cape.frameDelay = frameDelay;
                 cape.animated = true;
+            }
+            if (Object.keys(extraData).length > 0) {
+                cape.extraData = extraData;
             }
             return {
                 cape: Caching.cacheCape(await cape.save()),
