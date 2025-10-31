@@ -18,7 +18,7 @@ export default class MinecraftCapeLoader extends CapeLoader {
             if (textureInfo.textures && textureInfo.textures.CAPE) {
                 const cape = textureInfo.textures.CAPE;
                 if (cape.url) {
-                    extraData.url = cape.url;
+                    extraData.mchash = MinecraftCapeLoader.getHashFromMojangTextureUrl(cape.url) || '';
                     return this.loadCapeImage({
                         url: cape.url
                     });
@@ -26,6 +26,13 @@ export default class MinecraftCapeLoader extends CapeLoader {
             }
             return undefined;
         })
+    }
+
+    static getHashFromMojangTextureUrl(url: string): Maybe<string> {
+        if (!url) return undefined;
+        const res = /textures\.minecraft\.net\/texture\/([0-9a-z]+)/i.exec(url);
+        if (!res || res.length <= 1) return undefined;
+        return res[1];
     }
 
 }
