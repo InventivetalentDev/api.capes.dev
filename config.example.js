@@ -18,16 +18,10 @@ config.mongo = {
     database: "capes"
 };
 
-config.cloudinary = {
-    cloud_name: "idk",
-    api_key: "idk",
-    api_secret: "stop asking",
-    preset: "capes_upload"
-};
-
 config.cloudflare = {
     accountId: "idk",
-    apiToken: "idk"
+    apiToken: "idk",
+    accountHash: "idk"
 }
 
 module.exports = config;

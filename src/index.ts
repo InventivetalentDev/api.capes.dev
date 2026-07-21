@@ -9,18 +9,13 @@ import * as express from "express";
 import "express-async-errors";
 import { Request, Response, ErrorRequestHandler, Express, NextFunction } from "express";
 import { apiRequestsMiddleware } from "./util/metrics";
-import { corsMiddleware, getIp, HAS_NO_CAPE } from "./util";
+import { corsMiddleware, getIp } from "./util";
 import { info, warn } from "./util/colors";
 import { CapeError } from "./typings/CapeError";
-import { v2 as cloudinary } from "cloudinary";
 import { statsRoute, getRoute, imgRoute, typesRoute, loadRoute, historyRoute } from "./routes";
 import connectToMongo from "./database";
 import * as bodyParser from "body-parser";
 import { Puller } from "express-git-puller";
-import { Cape } from "./database/schemas/cape";
-import * as FormData from "form-data";
-import { Requests } from "./Requests";
-import { CapeHandler } from "./CapeHandler";
 
 sourceMapSupport.install();
 
@@ -36,11 +31,6 @@ const app: Express = express();
 
 async function init() {
     console.log("Node Version " + process.version);
-
-    {
-        console.log("Initializing Cloudinary");
-        cloudinary.config(config.cloudinary);
-    }
 
     {
         console.log("Setting up express middleware")
@@ -170,134 +160,6 @@ async function init() {
     }
     app.use(errorHandler);
 
-
-    // console.log("starting cloudflare migration task");
-    // setInterval(async () => {
-    //     await migrateCapeToCloudflare();
-    // }, 1000 * 5);
-    // await migrateCapeToCloudflare();
-}
-
-async function migrateCapeToCloudflare() {
-    try {
-        const cape = await Cape.findOne({
-            $or: [
-                {cdn: {$exists: false}},
-                {cdn: {$ne: "cloudflare"}}
-            ],
-            imageHash: {$ne: HAS_NO_CAPE}
-        });
-        if (!cape) {
-            console.log("No capes to migrate");
-            return;
-        }
-        console.log("Migrating cape " + cape.id);
-
-        const formData = new FormData();
-        formData.append("url", await CapeHandler.findCapeImageUrl(cape.imageHash));
-
-        let publicId = cape.imageHash;
-        const metadata: any = {
-            "cape": cape.type,
-            "type": cape.type,
-            "migrated": "cloudinary"
-        };
-        const suffix = cape.animated ? 'animated' : null;
-        if (suffix) {
-            publicId += "_" + suffix;
-            metadata["suffix"] = suffix;
-        }
-        // if (meta) {
-        //     for (const key of Object.keys(meta)) {
-        //         metadata[key] = meta[key];
-        //     }
-        // }
-
-        formData.append("id", `capes/${ publicId }`);
-        formData.append("metadata", JSON.stringify(metadata));
-
-        try {
-            let res;
-            try {
-                res = await Requests.axiosInstance.request({
-                    method: "POST",
-                    url: `https://api.cloudflare.com/client/v4/accounts/${ config.cloudflare.accountId }/images/v1`,
-                    headers: {
-                        "Authorization": "Bearer " + config.cloudflare.apiToken,
-                        "Content-Type": `multipart/form-data; boundary=${ formData.getBoundary() }`,
-                    },
-                    data: formData
-                });
-                console.log(res.data);
-            } catch (e) {
-                if (e.response) {
-                    console.log(e.response.data)
-                    console.log(e.response.errors);
-                    res = e.response;
-                }
-            }
-
-            let success = false;
-            let skip = false;
-            if (res && res.data.success) {
-                success = true;
-            } else {
-                for (const error of res.data.errors) {
-                    console.log(error.message);
-                    if (error.message.includes('Fetching image from imagedelivery.net')) {
-                        // already on cloudflare
-                        success = true;
-                    }
-                    if (error.message.includes('Resource already exists')) {
-                        // already on cloudflare
-                        success = true;
-                    }
-                    if (error.message.includes('Error during the fetch, code: 404')) {
-                        // image not found
-                        skip = true;
-                    }
-                }
-            }
-
-            if (success || skip) {
-                console.log("Migrated cape " + cape.id);
-                cape.cdn = "cloudflare";
-                if (skip) {
-                    await cape.delete();
-                } else {
-                    await cape.save();
-                }
-
-                await cloudinary.uploader.destroy(`capes/${ cape.imageHash }`, (error, result) => {
-                    if (error) {
-                        console.error("Failed to delete old cape " + cape.imageHash);
-                        console.error(error);
-                    } else {
-                        console.log("Deleted old cape " + cape.imageHash);
-                        console.log(result);
-                    }
-                });
-
-                await Cape.updateMany({
-                    imageHash: cape.imageHash
-                }, {
-                    $set: {
-                        cdn: "cloudflare"
-                    }
-                })
-            } else {
-                console.error("Failed to migrate cape " + cape.id);
-            }
-        } catch (e) {
-            if (e.response) {
-                console.log(e.response.data)
-                console.log(e.response.errors);
-            }
-        }
-
-    } catch (e) {
-        console.error(e)
-    }
 }
 
 init().then(() => {

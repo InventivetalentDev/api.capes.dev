@@ -1,6 +1,6 @@
 import { ICapeDocument } from "./typings/ICapeDocument";
 import { CapeInfo, ImageUrls } from "./typings/CapeInfo";
-import { formatMeta, HAS_NO_CAPE, Maybe } from "./util";
+import { HAS_NO_CAPE, Maybe } from "./util";
 import { CapeType } from "./typings/CapeType";
 import { CapeLoader } from "./loaders/CapeLoader";
 import * as Sentry from "@sentry/node";
@@ -13,8 +13,6 @@ import * as hasha from "hasha";
 import * as crypto from "crypto";
 import { LoadedCapeInfo } from "./typings/LoadedCapeInfo";
 import * as bufferImageSize from "buffer-image-size";
-import { UploadApiErrorResponse, UploadApiResponse, v2 as cloudinary } from "cloudinary";
-import { UploadApiOptions } from "cloudinary";
 import { getConfig } from "./typings/Configs";
 import { Coordinates, Size, Transforms } from "./typings";
 import { CanvasRenderingContext2D, createCanvas, Image } from "canvas";
@@ -208,43 +206,16 @@ export class CapeHandler {
     }
 
 
-    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<'cloudflare' | 'cloudinary' | false> {
+    static async uploadImage(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<'cloudflare' | false> {
         try {
             if (await this.uploadImageCloudflare(name, type, buffer, suffix, meta)) {
                 return 'cloudflare';
             }
         } catch (e) {
             console.log(e)
-        }
-        if (await this.uploadImageCloudinary(name, type, buffer, suffix, meta)) {
-            return 'cloudinary';
+            Sentry.captureException(e);
         }
         return false;
-    }
-
-    static async uploadImageCloudinary(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
-        const options: UploadApiOptions = {
-            upload_preset: config.cloudinary.preset,
-            public_id: name,
-            tags: ["cape", type]
-        };
-        if (suffix) {
-            options.public_id += "_" + suffix;
-            options.tags.push(suffix);
-        }
-        if (meta) {
-            options.context = formatMeta(meta);
-        }
-        return new Promise(resolve => {
-            cloudinary.uploader.upload_stream(options, (err?: UploadApiErrorResponse, result?: UploadApiResponse) => {
-                if (err) {
-                    Sentry.captureException(err);
-                    resolve(undefined);
-                } else {
-                    resolve(true);
-                }
-            }).end(buffer);
-        })
     }
 
     static async uploadImageCloudflare(name: string, type: string, buffer: Buffer, suffix?: string, meta?: any): Promise<Maybe<boolean>> {
@@ -284,6 +255,14 @@ export class CapeHandler {
                 console.log(e.response.data)
                 console.log(e.response.errors);
             }
+            Sentry.captureException(e, {
+                extra: {
+                    name: name,
+                    type: type,
+                    suffix: suffix,
+                    response: e.response?.data
+                }
+            });
         }
         return false;
     }
@@ -293,27 +272,7 @@ export class CapeHandler {
         if (!cape) {
             return undefined;
         }
-        if ('cloudflare' === cape.cdn) {
-            return this.findCloudflareCapeImageUrl(cape, transform, preferStill, preferAnimated);
-        }
-        return this.findCapeImageUrlCloudinary(cape, transform, preferStill, preferAnimated);
-    }
-
-    static async findCapeImageUrlCloudinary(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        let file = cape.imageHash;
-        const options: any = {};
-        if (transform) {
-            file += "_" + transform;
-        }
-        if (cape.animated) {
-            file += "_animated";
-            if (preferStill) { // Reply with the first frame of the animation, cropped to regular dimensions
-                options["page"] = 1; // first GIF frame
-            } else if (preferAnimated) { // Reply with animation, cropped to regular dimensions
-            }
-            // Otherwise reply with the full size original cape image, including all the frames
-        }
-        return this.imageUrl(file, options);
+        return this.findCloudflareCapeImageUrl(cape, transform, preferStill, preferAnimated);
     }
 
     static async findCloudflareCapeImageUrl(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
@@ -357,10 +316,6 @@ export class CapeHandler {
         }
 
         return url;
-    }
-
-    static imageUrl(name: string, options: any): string {
-        return cloudinary.url("capes/" + name, options);
     }
 
     static capeHash(imageHash: string, uuid: string, type: CapeType, time: number) {

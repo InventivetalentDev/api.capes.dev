@@ -1,5 +1,4 @@
 import { Config as SshTunnelConfig } from "tunnel-ssh";
-import { ConfigOptions as CloudinaryConfig } from "cloudinary";
 import { ISingleHostConfig } from "influx";
 import { Options as GitPullerOptions } from "express-git-puller"
 
@@ -23,7 +22,6 @@ export interface CapesConfig {
     port: number;
 
     mongo: MongoConfig;
-    cloudinary: CloudinaryConfig & { preset: string; };
     cloudflare: {apiToken: string;accountId:string;accountHash: string;};
     metrics: ISingleHostConfig;
     sentry: SentryConfig;

@@ -28,14 +28,6 @@ export const corsMiddleware = (req: Request, res: Response, next: NextFunction) 
     }
 };
 
-export function formatMeta(meta: any) {
-    let formattedMetaArr = [];
-    for (let m in meta) {
-        formattedMetaArr.push(m + "=" + meta[m]);
-    }
-    return formattedMetaArr.join("|");
-}
-
 export function getIp(req: Request): string {
     return req.get('cf-connecting-ip') || req.get('x-forwarded-for') || req.get("x-real-ip") || req.connection.remoteAddress || req.ip || "";
 }
