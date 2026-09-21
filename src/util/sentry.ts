@@ -5,6 +5,20 @@ import { Maybe } from "./index";
 
 const SNIPPET_LENGTH = 200;
 
+// Enough to tell a WAF challenge apart from a real rate limit or an app-level
+// refusal. Whether an upstream blocks us is a property of the calling IP and TLS
+// fingerprint, so it can only be answered from the box actually serving traffic.
+// Allowlisted rather than copied wholesale to keep cookies/auth echoes out.
+const DIAGNOSTIC_HEADERS = [
+    "server",
+    "content-type",
+    "retry-after",
+    "cf-ray",
+    "cf-mitigated",
+    "x-ratelimit-remaining",
+    "x-ratelimit-reset"
+];
+
 // Axios rejections all share the same createError() stack, so without an explicit
 // fingerprint every upstream failure - any host, any status - collapses into one
 // issue. Reporting each (source, host, status) at most once per interval keeps a
@@ -37,6 +51,20 @@ function upstreamTarget(err: any): { host: string, method: string, path: string 
     } catch (e) {
         return { host: "unknown", method: method, path: "unknown" };
     }
+}
+
+function diagnosticHeaders(headers: any): Maybe<Record<string, string>> {
+    if (!headers) {
+        return undefined;
+    }
+    const picked: Record<string, string> = {};
+    for (const name of DIAGNOSTIC_HEADERS) {
+        const value = headers[name];
+        if (value !== undefined && value !== null) {
+            picked[name] = `${ value }`;
+        }
+    }
+    return Object.keys(picked).length > 0 ? picked : undefined;
 }
 
 function responseSnippet(data: any): Maybe<string> {
@@ -91,6 +119,7 @@ export function captureUpstreamError(err: any, source: string, extra?: Record<st
                 method: target.method,
                 status: status,
                 statusText: err && err.response ? err.response.statusText : undefined,
+                headers: diagnosticHeaders(err && err.response ? err.response.headers : undefined),
                 body: responseSnippet(err && err.response ? err.response.data : undefined),
                 // how many identical failures happened while this key was throttled
                 suppressedSinceLastReport: state ? state.suppressed : 0,
