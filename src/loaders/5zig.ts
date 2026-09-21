@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import { captureUpstreamError } from "../util/sentry";
 import { CapeLoader } from "./CapeLoader";
 import { addDashesToUuid, Maybe } from "../util";
 import { Caching } from "../Caching";
@@ -24,7 +24,7 @@ export default class FivezigCapeLoader extends CapeLoader {
             }
             return undefined;
         }).catch(err => {
-            Sentry.captureException(err);
+            captureUpstreamError(err, "cape:5zig");
             return undefined;
         })
     }
