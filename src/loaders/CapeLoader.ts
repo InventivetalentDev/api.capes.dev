@@ -1,7 +1,7 @@
 import { Maybe } from "../util";
 import { AxiosRequestConfig, AxiosResponse } from "axios";
 import { Requests } from "../Requests";
-import * as Sentry from "@sentry/node";
+import { captureUpstreamError } from "../util/sentry";
 import { Coordinates, Transforms } from "../typings";
 import { debug } from "../util/colors";
 import { Caching } from "../Caching";
@@ -32,7 +32,7 @@ export abstract class CapeLoader {
                         return undefined;
                     }
                 }
-                Sentry.captureException(err);
+                captureUpstreamError(err, `cape:${ this.type }`);
                 return undefined;
             })
     }

@@ -39,14 +39,15 @@ export class Requests {
 
     static processRequestMetric<T>(responseOrError: T, request?: AxiosRequestConfig, response?: AxiosResponse, instance?: AxiosInstance, err?: any): T {
         try {
-            const m = REQUESTS_METRIC;
+            // Metric#tag() returns a fresh builder, so the tags only land if we keep it
+            let m = REQUESTS_METRIC.field("count");
             if (request) {
                 const url = new URL(axios.getUri(request), instance?.defaults.baseURL);
-                m.tag("method", request.method || "GET")
+                m = m.tag("method", request.method || "GET")
                     .tag("host", url.hostname);
             }
             if (response) {
-                m.tag("statusCode", "" + response.status)
+                m = m.tag("statusCode", "" + response.status);
             }
             m.inc();
         } catch (e) {

@@ -13,6 +13,9 @@ export default class MinecraftCapeLoader extends CapeLoader {
         this.validateUuid(uuid);
 
         return Caching.getUserProfile(uuid).then(profile => {
+            if (!profile) { // profile lookup failed upstream, already reported there
+                return undefined;
+            }
             const decoded = Buffer.from(profile.value, 'base64').toString('ascii');
             const textureInfo = JSON.parse(decoded) as TextureInfo;
             if (textureInfo.textures && textureInfo.textures.CAPE) {

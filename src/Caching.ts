@@ -1,5 +1,5 @@
 import {AsyncLoadingCache, Caches, CacheStats, ICacheBase, SimpleCache, Time} from "@inventivetalent/loading-cache";
-import * as Sentry from "@sentry/node";
+import {captureUpstreamError} from "./util/sentry";
 import {Requests} from "./Requests";
 import {User} from "./typings/User";
 import {Maybe, stripUuid} from "./util";
@@ -36,12 +36,7 @@ export class Caching {
                 }
                 return d;
             }).catch(err => {
-                Sentry.captureException(err, {
-                    level: "warning",
-                    tags: {
-                        cache: "userByName"
-                    }
-                });
+                captureUpstreamError(err, "cache:userByName");
                 return {
                     valid: false,
                     uuid: undefined,
@@ -74,12 +69,7 @@ export class Caching {
                 }
                 return d;
             }).catch(err => {
-                Sentry.captureException(err, {
-                    level: "warning",
-                    tags: {
-                        cache: "userByUuid"
-                    }
-                });
+                captureUpstreamError(err, "cache:userByUuid");
                 return {
                     valid: false,
                     uuid: uuid,
@@ -101,12 +91,7 @@ export class Caching {
                 const body = response.data as ProfileResponse;
                 return body.properties[0] as ProfileProperty;
             }).catch(err => {
-                Sentry.captureException(err, {
-                    level: "warning",
-                    tags: {
-                        cache: "userProfile"
-                    }
-                });
+                captureUpstreamError(err, "cache:userProfile");
                 return undefined;
             });
         });
@@ -146,7 +131,8 @@ export class Caching {
         }
     }
 
-    public static getUserProfile(uuid: string) {
+    // resolves undefined when the profile lookup failed - callers must check
+    public static getUserProfile(uuid: string): Promise<Maybe<ProfileProperty>> {
         return this.userProfileCache.get(uuid);
     }
 
