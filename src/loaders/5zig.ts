@@ -18,7 +18,7 @@ export default class FivezigCapeLoader extends CapeLoader {
             method: "GET",
             url: `https://textures.5zigreborn.eu/profile/${ uuid }`
         }).then(response => {
-            let profile = response.data;
+            let profile = response?.data;
             if (profile && profile.d) {
                 return Buffer.from(profile.d, 'base64');
             }

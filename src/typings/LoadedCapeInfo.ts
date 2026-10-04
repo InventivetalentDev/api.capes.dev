@@ -1,6 +1,6 @@
-import { ICapeDocument } from "./ICapeDocument";
+import { ICape } from "./ICapeDocument";
 
 export interface LoadedCapeInfo {
-    cape: ICapeDocument;
+    cape: ICape;
     changed: boolean;
 }

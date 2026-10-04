@@ -3,6 +3,10 @@ import { CapeHandler, SUPPORTED_TYPES } from "../CapeHandler";
 import { Cape } from "../database/schemas/cape";
 import { HAS_NO_CAPE } from "../util";
 import { CapeInfo } from "../typings/CapeInfo";
+import { ICape } from "../typings/ICapeDocument";
+
+const DEFAULT_HISTORY_LIMIT = 100;
+const MAX_HISTORY_LIMIT = 500;
 
 export const register = (app: Application) => {
 
@@ -20,7 +24,9 @@ export const register = (app: Application) => {
             return;
         }
 
-        let capeQuery: any = {};
+        let capeQuery: any = {
+            imageHash: { $ne: HAS_NO_CAPE }
+        };
         if (type !== "all") {
             capeQuery.type = type;
         }
@@ -40,13 +46,10 @@ export const register = (app: Application) => {
             capeQuery.player = player.toLowerCase();
         }
 
-        const capes = await Cape.find(capeQuery).sort({ time: -1 }).exec();
-        const history: CapeInfo[] = [];
-        capes.forEach(cape => {
-            if (cape.imageHash !== HAS_NO_CAPE) {
-                history.push(CapeHandler.makeCapeInfo(cape, false));
-            }
-        });
+        const limit = Math.min(Math.max(parseInt(req.query["limit"] as string) || DEFAULT_HISTORY_LIMIT, 1), MAX_HISTORY_LIMIT);
+
+        const capes = await Cape.find(capeQuery).sort({ time: -1 }).limit(limit).lean<ICape[]>().exec();
+        const history: CapeInfo[] = capes.map(cape => CapeHandler.makeCapeInfo(cape, false));
         res.json({
             type: type,
             player: player,

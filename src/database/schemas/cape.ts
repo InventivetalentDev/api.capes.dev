@@ -1,6 +1,7 @@
 import { model, Schema } from "mongoose";
-import { ICapeDocument, ICapeModel } from "../../typings/ICapeDocument";
+import { ICape, ICapeDocument, ICapeModel } from "../../typings/ICapeDocument";
 import { CapeType } from "../../typings/CapeType";
+import { Maybe } from "../../util";
 
 
 export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
@@ -11,13 +12,11 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     },
     player: {
         type: String,
-        index: true,
         minLength: 32,
         maxLength: 32
     },
     lowerPlayerName: {
         type: String,
-        index: true,
         minLength: 2,
         maxLength: 16
     },
@@ -28,7 +27,6 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     },
     type: {
         type: String,
-        index: true,
         enum: Object.values(CapeType)
     },
     time: {
@@ -61,9 +59,19 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
     extraData: Schema.Types.Mixed
 });
 
+// player/lowerPlayerName + type + time serve the latest-cape and history lookups without an in-memory sort,
+// type + imageHash lets the stats count capes per type from the index alone.
+// These replace the single-field player, lowerPlayerName and type indexes (see scripts/migrateIndexes.ts)
+export const CAPE_COMPOUND_INDEXES: Array<Record<string, 1 | -1>> = [
+    { player: 1, type: 1, time: -1 },
+    { lowerPlayerName: 1, type: 1, time: -1 },
+    { type: 1, imageHash: 1 }
+];
+CAPE_COMPOUND_INDEXES.forEach(index => CapeSchema.index(index));
 
-CapeSchema.statics.findByHash = function (hash: string): Promise<ICapeDocument | null> {
-    return Cape.findOne({ hash: hash }).exec();
+
+CapeSchema.statics.findByHash = function (hash: string): Promise<Maybe<ICape>> {
+    return Cape.findOne({ hash: hash }).lean<ICape>().exec().then(cape => cape || undefined);
 }
 
 export const Cape: ICapeModel = model<ICapeDocument, ICapeModel>("Cape", CapeSchema);

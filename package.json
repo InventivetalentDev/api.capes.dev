@@ -9,13 +9,14 @@
     "clean": "rm -rf dist",
     "compile": "tsc",
     "build": "npm run clean && npm run compile",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "migrate-indexes": "node dist/scripts/migrateIndexes.js"
   },
   "author": "Haylee Schäfer",
   "license": "MIT",
   "dependencies": {
     "@inventivetalent/gitsha": "1.0.0",
-    "@inventivetalent/loading-cache": "0.4.0",
+    "@inventivetalent/loading-cache": "1.0.0",
     "@inventivetalent/typescript-memoize": "1.0.0-alpha.5",
     "@sentry/node": "8.17.0",
     "@sentry/profiling-node": "^8.17.0",
