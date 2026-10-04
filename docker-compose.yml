@@ -1,0 +1,55 @@
+# Usage: cp .env.example .env, fill it in, then
+#   docker compose up -d --build
+# Scale the API on this server with APP_REPLICAS (or `docker compose up -d --scale app=N`).
+# See README.md for running across multiple servers.
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+    image: ${CAPES_IMAGE:-ghcr.io/inventivetalentdev/api.capes.dev:latest}
+    env_file: .env
+    init: true
+    restart: unless-stopped
+    # leaves time for SHUTDOWN_DELAY plus in-flight requests before docker kills the container
+    stop_grace_period: 30s
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+      resources:
+        limits:
+          memory: ${APP_MEMORY_LIMIT:-512M}
+    depends_on:
+      mongo:
+        condition: service_healthy
+        required: false
+
+  lb:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-3026}:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Local database, enabled by COMPOSE_PROFILES=local-db in .env.
+  # In production point MONGO_URL at a shared MongoDB (replica set) instead.
+  mongo:
+    image: mongo:7.0
+    profiles: [ local-db ]
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongo-data:

@@ -1,0 +1,16 @@
+.git
+.github
+.idea
+node_modules
+dist
+Dockerfile
+docker-compose*.yml
+docker
+*.md
+
+# secrets & local config belong in env vars / mounts, not in the image
+.env
+.env.*
+config.js
+id_rsa*
+*.log
