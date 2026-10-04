@@ -41,7 +41,26 @@ Object.values(CapeType).forEach(async (t) => {
 
 export class CapeHandler {
 
-    static async getOrLoadCape(type: CapeType, player: string): Promise<Maybe<LoadedCapeInfo>> {
+    private static readonly inFlightLoads: Map<string, Promise<Maybe<LoadedCapeInfo>>> = new Map();
+
+    static getOrLoadCape(type: CapeType, player: string): Promise<Maybe<LoadedCapeInfo>> {
+        // concurrent requests for the same cape share a single upstream fetch & db write
+        const key = `${ type }:${ player.toLowerCase() }`;
+        let promise = this.inFlightLoads.get(key);
+        if (!promise) {
+            promise = (async () => {
+                try {
+                    return await this.loadCape(type, player);
+                } finally {
+                    this.inFlightLoads.delete(key);
+                }
+            })();
+            this.inFlightLoads.set(key, promise);
+        }
+        return promise;
+    }
+
+    private static async loadCape(type: CapeType, player: string): Promise<Maybe<LoadedCapeInfo>> {
         let capeQuery: any = {
             type: type
         };
@@ -140,8 +159,19 @@ export class CapeHandler {
             if (Object.keys(extraData).length > 0) {
                 cape.extraData = extraData;
             }
+            let savedCape: ICapeDocument;
+            try {
+                savedCape = await cape.save();
+            } catch (e) {
+                // another instance saved the exact same cape within the same second
+                const duplicate = e.code === 11000 ? await Cape.findByHash(capeHash) : undefined;
+                if (!duplicate) {
+                    throw e;
+                }
+                savedCape = duplicate;
+            }
             return {
-                cape: Caching.cacheCape(await cape.save()),
+                cape: Caching.cacheCape(savedCape),
                 changed: true
             }
         }

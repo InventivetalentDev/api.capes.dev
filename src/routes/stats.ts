@@ -1,11 +1,16 @@
 import * as Sentry from "@sentry/node";
 import { Application, query, Request, Response } from "express";
 import { Cape } from "../database/schemas/cape";
+import { StatsSnapshot } from "../database/schemas/statsSnapshot";
 import { HAS_NO_CAPE } from "../util";
 import { Stats } from "../typings/Stats";
-import { metrics } from "../util/metrics";
+import { metrics, metricsEnabled } from "../util/metrics";
 import { IPoint } from "influx";
 import { CapeType } from "../typings/CapeType";
+import { LeaderTask } from "../LeaderTask";
+
+const STATS_INTERVAL = 60000;
+const SNAPSHOT_ID = "global";
 
 export const register = (app: Application) => {
 
@@ -24,7 +29,7 @@ export const register = (app: Application) => {
         const start = Date.now();
 
         const totalCount = await Cape.countDocuments({ imageHash: { $ne: HAS_NO_CAPE } }).exec();
-        const distinctPlayerCount = await Cape.aggregate([{ $group: { _id: "$player" } }, { $count: "count" }]).exec().then((docs: any[]) => docs[0]["count"]);
+        const distinctPlayerCount = await Cape.aggregate([{ $group: { _id: "$player" } }, { $count: "count" }]).exec().then((docs: any[]) => docs.length > 0 ? docs[0]["count"] : 0);
         const perTypeCount = await Cape.aggregate([{ $match: { imageHash: { $ne: HAS_NO_CAPE } } }, { $group: { _id: '$type', count: { $sum: 1 } } }]).exec()
             .then((perType: any[]) => {
                 let types: { [s: string]: number } = {};
@@ -46,6 +51,16 @@ export const register = (app: Application) => {
         stats.players = distinctPlayerCount;
         stats.types = perTypeCount;
 
+        // share the result with the other instances, which don't run the query themselves
+        await StatsSnapshot.updateOne({ _id: SNAPSHOT_ID }, {
+            $set: {
+                total: totalCount,
+                players: distinctPlayerCount,
+                types: perTypeCount,
+                updatedAt: new Date()
+            }
+        }, { upsert: true }).exec();
+
         try {
             let points: IPoint[] = [];
             for (let type in perTypeCount) {
@@ -66,7 +81,9 @@ export const register = (app: Application) => {
                     players: distinctPlayerCount
                 }
             });
-            await metrics.influx.writePoints(points);
+            if (metricsEnabled) {
+                await metrics.influx.writePoints(points);
+            }
         } catch (e) {
             Sentry.captureException(e);
         }
@@ -74,7 +91,24 @@ export const register = (app: Application) => {
         console.log("stats query took " + ((Date.now() - start) / 1000) + "s");
     }
 
-    setInterval(() => queryStats(), 60000);
-    queryStats();
+    async function loadStats(): Promise<void> {
+        const snapshot = await StatsSnapshot.findById(SNAPSHOT_ID).lean().exec();
+        if (snapshot) {
+            stats.total = snapshot.total;
+            stats.players = snapshot.players;
+            stats.types = snapshot.types;
+        }
+    }
+
+    // the queries scan the whole collection, so only one instance runs them
+    const statsTask = new LeaderTask("stats", STATS_INTERVAL, queryStats).start();
+
+    const refreshStats = () => {
+        if (!statsTask.isLeader) {
+            loadStats().catch(e => Sentry.captureException(e));
+        }
+    };
+    setInterval(refreshStats, STATS_INTERVAL);
+    refreshStats();
 
 }

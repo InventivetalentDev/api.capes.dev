@@ -8,20 +8,25 @@ import gitsha from "@inventivetalent/gitsha";
 import * as express from "express";
 import "express-async-errors";
 import { Request, Response, ErrorRequestHandler, Express, NextFunction } from "express";
-import { apiRequestsMiddleware } from "./util/metrics";
-import { corsMiddleware, getIp } from "./util";
-import { info, warn } from "./util/colors";
+import { apiRequestsMiddleware, flushMetrics } from "./util/metrics";
+import { corsMiddleware, getIp, INSTANCE_ID } from "./util";
+import { error, info, warn } from "./util/colors";
 import { CapeError } from "./typings/CapeError";
 import { statsRoute, getRoute, imgRoute, typesRoute, loadRoute, historyRoute } from "./routes";
 import connectToMongo from "./database";
 import * as bodyParser from "body-parser";
 import { Puller } from "express-git-puller";
+import * as mongoose from "mongoose";
+import { Server } from "http";
+import { LeaderTask } from "./LeaderTask";
 
 sourceMapSupport.install();
 
 const config = getConfig();
 
 let updatingApp = true;
+let shuttingDown = false;
+let server: Server | undefined;
 
 console.log("\n" +
     "  ==== STARTING UP ==== " +
@@ -31,6 +36,21 @@ const app: Express = express();
 
 async function init() {
     console.log("Node Version " + process.version);
+    console.log("Instance " + INSTANCE_ID);
+
+    {
+        console.log("Registering health checks");
+
+        // liveness: the process is up and handling requests
+        app.get("/health", (req, res) => {
+            res.json({status: "ok"});
+        });
+        // readiness: this instance should receive traffic
+        app.get("/ready", (req, res) => {
+            const ready = !updatingApp && !shuttingDown && mongoose.connection.readyState === 1;
+            res.status(ready ? 200 : 503).json({status: ready ? "ready" : (shuttingDown ? "shutting down" : "not ready")});
+        });
+    }
 
     {
         console.log("Setting up express middleware")
@@ -97,6 +117,10 @@ async function init() {
     {
         console.log("Connecting to database")
         await connectToMongo(config);
+        mongoose.connection.on("reconnectFailed", () => {
+            // the driver gave up reconnecting, restart so the supervisor can start a fresh connection
+            shutdown("mongodb reconnect failed", 1);
+        });
     }
 
     {
@@ -162,10 +186,52 @@ async function init() {
 
 }
 
+async function shutdown(reason: string, exitCode: number = 0, delay: number = 0) {
+    if (shuttingDown) {
+        return;
+    }
+    shuttingDown = true;
+    console.log(warn(`Shutting down (${ reason })`));
+    setTimeout(() => {
+        console.error(error("Graceful shutdown timed out, exiting"));
+        process.exit(exitCode || 1);
+    }, delay + 20000).unref();
+
+    try {
+        // hand background jobs over to other instances right away
+        await LeaderTask.stopAll();
+    } catch (e) {
+        Sentry.captureException(e);
+    }
+
+    if (delay > 0) {
+        // /ready reports 503 now; keep serving until load balancers have noticed
+        console.log(`Draining for ${ delay }ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    if (server) {
+        // stops accepting connections and waits for in-flight requests
+        await new Promise(resolve => server!.close(resolve));
+    }
+
+    try {
+        await flushMetrics();
+    } catch (e) {
+        Sentry.captureException(e);
+    }
+    await mongoose.disconnect();
+    await Sentry.close(2000);
+    console.log("Bye!");
+    process.exit(exitCode);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM", 0, config.shutdownDelay));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
 init().then(() => {
     setTimeout(() => {
         console.log("Starting app");
-        app.listen(config.port, function () {
+        server = app.listen(config.port, function () {
             console.log(info(" ==> listening on *:" + config.port + "\n"));
             setTimeout(() => {
                 updatingApp = false;
@@ -173,5 +239,11 @@ init().then(() => {
             }, 200);
         });
     }, 200);
+}).catch(async e => {
+    // exit instead of idling without a server, so the supervisor restarts us
+    console.error(error("Failed to start"), e);
+    Sentry.captureException(e);
+    await Sentry.close(2000);
+    process.exit(1);
 });
 
