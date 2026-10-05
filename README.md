@@ -8,7 +8,7 @@ Minecraft Capes API, History & CDN
 Create `config.js` from `config.example.js`, then run:
 
 ```sh
-GIT_SHA=$(git rev-parse --short HEAD) docker compose up -d --build
+docker compose up -d --build
 ```
 
 `config.js` is mounted into the container. Inside the container, `localhost` is the container itself, so MongoDB and InfluxDB need addresses that the container can reach.

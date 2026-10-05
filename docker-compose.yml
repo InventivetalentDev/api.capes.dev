@@ -1,9 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      args:
-        GIT_SHA: ${GIT_SHA:-}
+    build: .
     restart: unless-stopped
     init: true
     ports:
