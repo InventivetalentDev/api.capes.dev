@@ -9,8 +9,7 @@
     "clean": "rm -rf dist",
     "compile": "tsc",
     "build": "npm run clean && npm run compile",
-    "start": "node dist/index.js",
-    "migrate-indexes": "node dist/scripts/migrateIndexes.js"
+    "start": "node dist/index.js"
   },
   "author": "Haylee Schäfer",
   "license": "MIT",

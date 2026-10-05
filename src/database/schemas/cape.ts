@@ -60,14 +60,10 @@ export const CapeSchema: Schema<ICapeDocument, ICapeModel> = new Schema({
 });
 
 // player/lowerPlayerName + type + time serve the latest-cape and history lookups without an in-memory sort,
-// type + imageHash lets the stats count capes per type from the index alone.
-// These replace the single-field player, lowerPlayerName and type indexes (see scripts/migrateIndexes.ts)
-export const CAPE_COMPOUND_INDEXES: Array<Record<string, 1 | -1>> = [
-    { player: 1, type: 1, time: -1 },
-    { lowerPlayerName: 1, type: 1, time: -1 },
-    { type: 1, imageHash: 1 }
-];
-CAPE_COMPOUND_INDEXES.forEach(index => CapeSchema.index(index));
+// type + imageHash lets the stats count capes per type from the index alone
+CapeSchema.index({ player: 1, type: 1, time: -1 });
+CapeSchema.index({ lowerPlayerName: 1, type: 1, time: -1 });
+CapeSchema.index({ type: 1, imageHash: 1 });
 
 
 CapeSchema.statics.findByHash = function (hash: string): Promise<Maybe<ICape>> {
