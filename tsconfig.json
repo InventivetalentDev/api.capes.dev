@@ -25,7 +25,6 @@
       "express",
       "body-parser",
       "mongoose",
-      "tunnel-ssh",
       "source-map-support"
     ],
     "baseUrl": "."

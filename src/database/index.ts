@@ -1,26 +1,8 @@
 import * as mongoose from "mongoose";
 import { ConnectOptions, Mongoose } from "mongoose";
 import { CapesConfig } from "../typings/Configs";
-import tunnel = require("tunnel-ssh");
 
-export default function connectToMongo(config: CapesConfig): Promise<Mongoose> {
-    return new Promise<Mongoose>((resolve, reject) => {
-        if (config.mongo.useTunnel) {
-            console.log("Establishing SSH Tunnel to " + config.mongo.tunnel.host + "...");
-            tunnel(config.mongo.tunnel, (err, server) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-                connectMongo(config).then(resolve).catch(reject);
-            })
-        } else {
-            connectMongo(config).then(resolve).catch(reject);
-        }
-    })
-};
-
-async function connectMongo(config: CapesConfig) {
+export default async function connectToMongo(config: CapesConfig): Promise<Mongoose> {
     // Connect to DB
     mongoose.set('useNewUrlParser', true);
     mongoose.set('useFindAndModify', false);

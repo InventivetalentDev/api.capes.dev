@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    network_mode: host
+    ports:
+      - "${PORT:-3026}:${PORT:-3026}"
