@@ -9,7 +9,7 @@ export default function connectToMongo(config: CapesConfig): Promise<Mongoose> {
             console.log("Establishing SSH Tunnel to " + config.mongo.tunnel.host + "...");
             tunnel(config.mongo.tunnel, (err, server) => {
                 if (err) {
-                    reject(err);
+                    console.error(err);
                     return;
                 }
                 connectMongo(config).then(resolve).catch(reject);

@@ -5,23 +5,9 @@ import { getConfig } from "../typings/Configs";
 
 const config = getConfig();
 
-export const metricsEnabled = !!config.metrics;
-export const metrics = new Metrics(config.metrics!);
-const flusher = metricsEnabled ? new IntervalFlusher(metrics, 10000) : undefined;
-if (flusher) {
-    metrics.setFlusher(flusher);
-} else {
-    console.warn("No metrics config, not writing metrics to influx");
-    // counters only get cleared by flushing, so drop them instead of piling up in memory
-    setInterval(() => metrics.metrics.forEach(m => m._cache.clear()), 10000);
-}
-
-export async function flushMetrics(): Promise<void> {
-    if (flusher) {
-        flusher.cancel();
-        await flusher.flush();
-    }
-}
+export const metrics = new Metrics(config.metrics);
+const flusher = new IntervalFlusher(metrics, 10000);
+metrics.setFlusher(flusher);
 
 
 export const API_REQUESTS_METRIC = metrics.metric('capes', 'api_requests');

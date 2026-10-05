@@ -44,8 +44,6 @@ const RECENT_CAPE_SECONDS = 600;
 
 export class CapeHandler {
 
-    private static readonly inFlightLoads: Map<string, Promise<Maybe<LoadedCapeInfo>>> = new Map();
-
     static playerQuery(player: string): { player: string } | { lowerPlayerName: string } {
         if (player.length < 20) { // name
             return {lowerPlayerName: player.toLowerCase()};
@@ -84,24 +82,7 @@ export class CapeHandler {
         return Promise.all(types.map(type => this.loadCape(type, player, existingCapes.get(type))));
     }
 
-    private static loadCape(type: CapeType, player: string, existingCape: Maybe<ICape>): Promise<Maybe<LoadedCapeInfo>> {
-        // concurrent requests for the same cape share a single upstream fetch & db write
-        const key = `${ type }:${ player.toLowerCase() }`;
-        let promise = this.inFlightLoads.get(key);
-        if (!promise) {
-            promise = (async () => {
-                try {
-                    return await this.doLoadCape(type, player, existingCape);
-                } finally {
-                    this.inFlightLoads.delete(key);
-                }
-            })();
-            this.inFlightLoads.set(key, promise);
-        }
-        return promise;
-    }
-
-    private static async doLoadCape(type: CapeType, player: string, existingCape: Maybe<ICape>): Promise<Maybe<LoadedCapeInfo>> {
+    private static async loadCape(type: CapeType, player: string, existingCape: Maybe<ICape>): Promise<Maybe<LoadedCapeInfo>> {
         if (existingCape) {
             if (Math.floor(Date.now() / 1000) - existingCape.time < RECENT_CAPE_SECONDS) { // time is in seconds
                 return {
@@ -197,19 +178,8 @@ export class CapeHandler {
             if (Object.keys(extraData).length > 0) {
                 cape.extraData = extraData;
             }
-            let savedCape: ICape;
-            try {
-                savedCape = (await cape.save()).toObject() as ICape;
-            } catch (e) {
-                // another instance saved the exact same cape within the same second
-                const duplicate = e.code === 11000 ? await Cape.findByHash(capeHash) : undefined;
-                if (!duplicate) {
-                    throw e;
-                }
-                savedCape = duplicate;
-            }
             return {
-                cape: Caching.cacheCape(savedCape),
+                cape: Caching.cacheCape((await cape.save()).toObject() as ICape),
                 changed: true
             }
         }

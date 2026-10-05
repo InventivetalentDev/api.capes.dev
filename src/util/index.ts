@@ -1,15 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import * as os from "os";
-import * as crypto from "crypto";
 import { CapeInfo } from "../typings/CapeInfo";
 import { ICapeDocument } from "../typings/ICapeDocument";
 
 export const HAS_NO_CAPE = "hasN0Cape";
 
 export type Maybe<T> = T | undefined;
-
-// identifies this process among all instances sharing the database (hostname is the container id in docker)
-export const INSTANCE_ID: string = process.env.INSTANCE_ID || `${ os.hostname() }-${ process.pid }-${ crypto.randomBytes(3).toString("hex") }`;
 
 
 export function stripUuid(uuid: string): string {

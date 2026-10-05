@@ -5,5 +5,3 @@
 /node_modules/
 /config.js
 /access.log
-
-/.env

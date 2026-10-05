@@ -1,16 +1,11 @@
 import * as Sentry from "@sentry/node";
 import { Application, query, Request, Response } from "express";
 import { Cape } from "../database/schemas/cape";
-import { StatsSnapshot } from "../database/schemas/statsSnapshot";
 import { HAS_NO_CAPE } from "../util";
 import { Stats } from "../typings/Stats";
-import { metrics, metricsEnabled } from "../util/metrics";
+import { metrics } from "../util/metrics";
 import { IPoint } from "influx";
 import { CapeType } from "../typings/CapeType";
-import { LeaderTask } from "../LeaderTask";
-
-const STATS_INTERVAL = 60000;
-const SNAPSHOT_ID = "global";
 
 export const register = (app: Application) => {
 
@@ -51,16 +46,6 @@ export const register = (app: Application) => {
         stats.players = distinctPlayerCount;
         stats.types = perTypeCount;
 
-        // share the result with the other instances, which don't run the query themselves
-        await StatsSnapshot.updateOne({ _id: SNAPSHOT_ID }, {
-            $set: {
-                total: totalCount,
-                players: distinctPlayerCount,
-                types: perTypeCount,
-                updatedAt: new Date()
-            }
-        }, { upsert: true }).exec();
-
         try {
             let points: IPoint[] = [];
             for (let type in perTypeCount) {
@@ -81,9 +66,7 @@ export const register = (app: Application) => {
                     players: distinctPlayerCount
                 }
             });
-            if (metricsEnabled) {
-                await metrics.influx.writePoints(points);
-            }
+            await metrics.influx.writePoints(points);
         } catch (e) {
             Sentry.captureException(e);
         }
@@ -91,24 +74,23 @@ export const register = (app: Application) => {
         console.log("stats query took " + ((Date.now() - start) / 1000) + "s");
     }
 
-    async function loadStats(): Promise<void> {
-        const snapshot = await StatsSnapshot.findById(SNAPSHOT_ID).lean().exec();
-        if (snapshot) {
-            stats.total = snapshot.total;
-            stats.players = snapshot.players;
-            stats.types = snapshot.types;
+    let queryingStats = false;
+
+    async function updateStats(): Promise<void> {
+        // don't let slow runs pile up on each other
+        if (queryingStats) return;
+        queryingStats = true;
+        try {
+            await queryStats();
+        } catch (e) {
+            console.warn(e);
+            Sentry.captureException(e);
+        } finally {
+            queryingStats = false;
         }
     }
 
-    // the queries scan the whole collection, so only one instance runs them
-    const statsTask = new LeaderTask("stats", STATS_INTERVAL, queryStats).start();
-
-    const refreshStats = () => {
-        if (!statsTask.isLeader) {
-            loadStats().catch(e => Sentry.captureException(e));
-        }
-    };
-    setInterval(refreshStats, STATS_INTERVAL);
-    refreshStats();
+    setInterval(() => updateStats(), 60000);
+    updateStats();
 
 }
