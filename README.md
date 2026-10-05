@@ -16,4 +16,3 @@ docker compose up -d --build
 ```
 
 Inside the container, `localhost` is the container itself, so MongoDB and InfluxDB need addresses that the container can reach.
-If you use the MongoDB SSH tunnel, also mount the key file and point `MONGO_TUNNEL_KEY_FILE` at it.

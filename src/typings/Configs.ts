@@ -1,12 +1,7 @@
-import * as fs from "fs";
-import { Config as SshTunnelConfig } from "tunnel-ssh";
 import { ISingleHostConfig } from "influx";
 import { Options as GitPullerOptions } from "express-git-puller"
 
 interface MongoConfig {
-    useTunnel: boolean;
-    tunnel: SshTunnelConfig;
-
     url?: string;
     user?: string;
     pass?: string;
@@ -57,15 +52,7 @@ function loadConfig(env: NodeJS.ProcessEnv): CapesConfig {
         port: int(env.PORT) || 3026,
         mongo: {
             url: env.MONGO_URL,
-            poolSize: int(env.MONGO_POOL_SIZE),
-            useTunnel: !!env.MONGO_TUNNEL_HOST,
-            tunnel: {
-                host: env.MONGO_TUNNEL_HOST,
-                port: int(env.MONGO_TUNNEL_PORT) || 22,
-                username: env.MONGO_TUNNEL_USERNAME,
-                privateKey: env.MONGO_TUNNEL_KEY_FILE ? fs.readFileSync(env.MONGO_TUNNEL_KEY_FILE) : undefined,
-                dstPort: int(env.MONGO_TUNNEL_DST_PORT) || 27017
-            }
+            poolSize: int(env.MONGO_POOL_SIZE)
         },
         cloudflare: {
             accountId: env.CLOUDFLARE_ACCOUNT_ID,
