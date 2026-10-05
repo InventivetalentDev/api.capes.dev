@@ -116,10 +116,6 @@ async function init() {
     {
         console.log("Connecting to database")
         await connectToMongo(config);
-        mongoose.connection.on("reconnectFailed", () => {
-            // the driver gave up reconnecting, restart so the supervisor can start a fresh connection
-            shutdown("mongodb reconnect failed", 1);
-        });
     }
 
     {
@@ -185,7 +181,7 @@ async function init() {
 
 }
 
-async function shutdown(reason: string, exitCode: number = 0, delay: number = 0) {
+async function shutdown(reason: string, delay: number = 0) {
     if (shuttingDown) {
         return;
     }
@@ -193,7 +189,7 @@ async function shutdown(reason: string, exitCode: number = 0, delay: number = 0)
     console.log(warn(`Shutting down (${ reason })`));
     setTimeout(() => {
         console.error(error("Graceful shutdown timed out, exiting"));
-        process.exit(exitCode || 1);
+        process.exit(1);
     }, delay + 20000).unref();
 
     try {
@@ -221,10 +217,10 @@ async function shutdown(reason: string, exitCode: number = 0, delay: number = 0)
     await mongoose.disconnect();
     await Sentry.close(2000);
     console.log("Bye!");
-    process.exit(exitCode);
+    process.exit(0);
 }
 
-process.on("SIGTERM", () => shutdown("SIGTERM", 0, config.shutdownDelay));
+process.on("SIGTERM", () => shutdown("SIGTERM", config.shutdownDelay));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
 init().then(() => {

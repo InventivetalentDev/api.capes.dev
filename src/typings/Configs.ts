@@ -105,6 +105,7 @@ function applyEnv(base: Partial<CapesConfig>): CapesConfig {
     override(c.mongo, "address", env("MONGO_ADDRESS"));
     override(c.mongo, "port", intEnv("MONGO_PORT"));
     override(c.mongo, "database", env("MONGO_DATABASE"));
+    override(c.mongo, "poolSize", intEnv("MONGO_POOL_SIZE"));
 
     c.cloudflare = c.cloudflare || <CapesConfig["cloudflare"]>{};
     override(c.cloudflare, "accountId", env("CLOUDFLARE_ACCOUNT_ID"));
