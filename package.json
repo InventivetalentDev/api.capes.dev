@@ -2,7 +2,7 @@
   "name": "api.capes.dev",
   "version": "1.0.0",
   "engines": {
-    "node": ">=15.7.0"
+    "node": ">=22.0.0"
   },
   "description": "",
   "scripts": {
@@ -14,8 +14,7 @@
   "author": "Haylee Schäfer",
   "license": "MIT",
   "dependencies": {
-    "@inventivetalent/gitsha": "1.0.0",
-    "@inventivetalent/loading-cache": "0.4.0",
+    "@inventivetalent/loading-cache": "1.0.0",
     "@inventivetalent/typescript-memoize": "1.0.0-alpha.5",
     "@sentry/node": "8.17.0",
     "@sentry/profiling-node": "^8.17.0",
@@ -23,7 +22,7 @@
     "axios": "0.21.1",
     "body-parser": "1.19.0",
     "buffer-image-size": "0.6.4",
-    "canvas": "^2.11.2",
+    "canvas": "^3.2.3",
     "chalk": "4.1.0",
     "express": "4.19.2",
     "express-async-errors": "3.1.1",
@@ -49,5 +48,10 @@
     "@types/tunnel-ssh": "4.1.0",
     "@types/uuid": "8.3.0",
     "typescript": "4.1.3"
+  },
+  "overrides": {
+    "gifencoder": {
+      "canvas": "$canvas"
+    }
   }
 }

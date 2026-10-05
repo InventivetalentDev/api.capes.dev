@@ -4,7 +4,6 @@ import * as Sentry from "@sentry/node";
 import * as Tracing from "@sentry/tracing";
 import * as sourceMapSupport from "source-map-support";
 import { getConfig } from "./typings/Configs";
-import gitsha from "@inventivetalent/gitsha";
 import * as express from "express";
 import "express-async-errors";
 import { Request, Response, ErrorRequestHandler, Express, NextFunction } from "express";

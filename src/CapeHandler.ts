@@ -1,4 +1,4 @@
-import { ICapeDocument } from "./typings/ICapeDocument";
+import { ICape, ICapeDocument } from "./typings/ICapeDocument";
 import { CapeInfo, ImageUrls } from "./typings/CapeInfo";
 import { HAS_NO_CAPE, Maybe } from "./util";
 import { CapeType } from "./typings/CapeType";
@@ -6,7 +6,7 @@ import { CapeLoader } from "./loaders/CapeLoader";
 import * as Sentry from "@sentry/node";
 import { User } from "./typings/User";
 import { Cape } from "./database/schemas/cape";
-import { Caching } from "./Caching";
+import { CapeImageInfo, Caching } from "./Caching";
 import { CapeError, CapeErrorCode } from "./typings/CapeError";
 import { debug, info, warn } from "./util/colors";
 import * as hasha from "hasha";
@@ -39,20 +39,52 @@ Object.values(CapeType).forEach(async (t) => {
     }
 })
 
+// Don't bother with capes already fetched within the last 10mins
+const RECENT_CAPE_SECONDS = 600;
+
 export class CapeHandler {
 
-    static async getOrLoadCape(type: CapeType, player: string): Promise<Maybe<LoadedCapeInfo>> {
-        let capeQuery: any = {
-            type: type
-        };
+    static playerQuery(player: string): { player: string } | { lowerPlayerName: string } {
         if (player.length < 20) { // name
-            capeQuery.lowerPlayerName = player.toLowerCase();
+            return {lowerPlayerName: player.toLowerCase()};
         } else { // uuid
-            capeQuery.player = player.toLowerCase();
+            return {player: player.toLowerCase()};
         }
-        const existingCape = await Cape.findOne(capeQuery).sort({time: -1}).exec();
+    }
+
+    static async findLatestCape(type: CapeType, player: string): Promise<Maybe<ICape>> {
+        const cape = await Cape.findOne({...this.playerQuery(player), type: type}).sort({time: -1}).lean<ICape>().exec();
+        return cape || undefined;
+    }
+
+    /**
+     * Latest cape of each type for the player, in a single query
+     */
+    static async findLatestCapes(player: string): Promise<Map<string, ICape>> {
+        const latest: { _id: string, cape: ICape }[] = await Cape.aggregate([
+            {$match: this.playerQuery(player)},
+            {$sort: {type: 1, time: -1}},
+            {$group: {_id: "$type", cape: {$first: "$$ROOT"}}}
+        ]).exec();
+        const capes = new Map<string, ICape>();
+        for (const entry of latest) {
+            capes.set(entry._id, entry.cape);
+        }
+        return capes;
+    }
+
+    static async getOrLoadCape(type: CapeType, player: string): Promise<Maybe<LoadedCapeInfo>> {
+        return this.loadCape(type, player, await this.findLatestCape(type, player));
+    }
+
+    static async getOrLoadCapes(types: CapeType[], player: string): Promise<Maybe<LoadedCapeInfo>[]> {
+        const existingCapes = await this.findLatestCapes(player);
+        return Promise.all(types.map(type => this.loadCape(type, player, existingCapes.get(type))));
+    }
+
+    private static async loadCape(type: CapeType, player: string, existingCape: Maybe<ICape>): Promise<Maybe<LoadedCapeInfo>> {
         if (existingCape) {
-            if (Date.now() - existingCape.time < 600) { // Don't bother with capes already fetched within the last 10mins
+            if (Math.floor(Date.now() / 1000) - existingCape.time < RECENT_CAPE_SECONDS) { // time is in seconds
                 return {
                     cape: Caching.cacheCape(existingCape),
                     changed: false
@@ -77,19 +109,25 @@ export class CapeHandler {
         const imageHash = loadedCape ? hasha(loadedCape) : HAS_NO_CAPE;
         if (existingCape && imageHash === existingCape.imageHash) {
             console.log(debug(`Updating time of existing ${ type } cape for ${ user.uuid } (${ existingCape.hash })`));
+            const set: Partial<ICape> = {
+                time: time
+            };
             if (!existingCape.firstTime) {
-                existingCape.firstTime = existingCape.time;
+                set.firstTime = existingCape.time;
             }
-            existingCape.time = time;
-            if (!existingCape.views) {
-                existingCape.views = 1;
-            }
-            existingCape.views++;
             if (Object.keys(extraData).length > 0) {
-                existingCape.extraData = extraData;
+                set.extraData = extraData;
             }
+            const update: any = {$set: set};
+            if (existingCape.views) {
+                // $inc so concurrent loads don't lose each other's increments
+                update.$inc = {views: 1};
+            } else {
+                set.views = 2;
+            }
+            const updatedCape = await Cape.findOneAndUpdate({hash: existingCape.hash}, update, {new: true}).lean<ICape>().exec();
             return {
-                cape: Caching.cacheCape(await existingCape.save()),
+                cape: Caching.cacheCape(updatedCape || {...existingCape, ...set}),
                 changed: false
             };
         } else {
@@ -141,7 +179,7 @@ export class CapeHandler {
                 cape.extraData = extraData;
             }
             return {
-                cape: Caching.cacheCape(await cape.save()),
+                cape: Caching.cacheCape((await cape.save()).toObject() as ICape),
                 changed: true
             }
         }
@@ -268,14 +306,14 @@ export class CapeHandler {
     }
 
     static async findCapeImageUrl(imageHash: string, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
-        const cape = await Cape.findOne({imageHash: imageHash}, "hash imageHash type width height extension animated cdn").exec();
+        const cape = await Caching.getCapeImageInfo(imageHash);
         if (!cape) {
             return undefined;
         }
         return this.findCloudflareCapeImageUrl(cape, transform, preferStill, preferAnimated);
     }
 
-    static async findCloudflareCapeImageUrl(cape: ICapeDocument, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
+    static async findCloudflareCapeImageUrl(cape: CapeImageInfo, transform?: string, preferStill: boolean = false, preferAnimated: boolean = false): Promise<Maybe<string>> {
         let file = cape.imageHash;
         if (cape.animated) {
             file += "_animated";
@@ -324,7 +362,7 @@ export class CapeHandler {
     }
 
 
-    static makeCapeInfo(cape: ICapeDocument, message: boolean = false, changed: boolean = false): CapeInfo | any {
+    static makeCapeInfo(cape: ICape, message: boolean = false, changed: boolean = false): CapeInfo | any {
         let hasNoCape = cape.imageHash === HAS_NO_CAPE;
         let json: CapeInfo | any = {
             hash: cape.hash,

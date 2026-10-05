@@ -20,11 +20,7 @@ export const register = (app: Application) => {
         console.log(`load request for ${ player } ${ type } from ${ userAgent }`)
 
         if (type === "all") {
-            let promises: Promise<Maybe<LoadedCapeInfo>>[] = [];
-            for (let type of SUPPORTED_TYPES) {
-                promises.push(CapeHandler.getOrLoadCape(type as CapeType, player));
-            }
-            let capes: Maybe<LoadedCapeInfo>[] = await Promise.all(promises);
+            let capes: Maybe<LoadedCapeInfo>[] = await CapeHandler.getOrLoadCapes(SUPPORTED_TYPES as CapeType[], player);
 
             if (!capes || capes.length <= 0) {
                 res.status(404).json({ error: "not found" });

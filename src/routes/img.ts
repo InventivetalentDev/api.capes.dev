@@ -2,6 +2,8 @@ import { Application, Request, Response } from "express";
 import { CapeHandler } from "../CapeHandler";
 import { Requests } from "../Requests";
 
+const IMAGE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
 export const register = (app: Application) => {
 
     app.get("/img/:hash", async function (req: Request, res: Response) {
@@ -30,9 +32,15 @@ export const register = (app: Application) => {
                 url: imageUrl,
                 responseType: "stream"
             }).then(response => {
+                const contentType = response.headers["content-type"];
+                if (contentType) {
+                    res.header("Content-Type", contentType);
+                }
+                // the image hash is derived from the image content, so this url always serves the same image
+                res.header("Cache-Control", `public, max-age=${ IMAGE_MAX_AGE_SECONDS }, immutable`);
                 response.data.pipe(res);
             }).catch(err => {
-                if (err.response.status === 404) {
+                if (err.response?.status === 404) {
                     res.status(404).json({error: "cape image not found"});
                 } else {
                     console.warn(err);

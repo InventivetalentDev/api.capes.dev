@@ -12,6 +12,9 @@ interface MongoConfig {
     address?: string;
     port?: number;
     database: string;
+
+    // connection pool size, defaults to 10
+    poolSize?: number;
 }
 
 interface SentryConfig {
