@@ -3,13 +3,17 @@ Minecraft Capes API, History & CDN
 
 [API Docs](https://rest.wiki/?https://api.capes.dev/openapi.yml)
 
+## Configuration
+
+The app is configured with environment variables, see [`.env.example`](.env.example).
+Outside of docker, they can be loaded from a file with `node --env-file=.env dist/index.js`.
+
 ## Docker
 
-Create `config.js` from `config.example.js`, then run:
-
 ```sh
+cp .env.example .env   # and fill it in
 docker compose up -d --build
 ```
 
-`config.js` is mounted into the container. Inside the container, `localhost` is the container itself, so MongoDB and InfluxDB need addresses that the container can reach.
-If you change `port` in `config.js`, change the port mapping in `docker-compose.yml` to match. If you use the MongoDB SSH tunnel, also mount the key file, e.g. `./id_rsa:/app/id_rsa:ro`.
+Inside the container, `localhost` is the container itself, so MongoDB and InfluxDB need addresses that the container can reach.
+If you use the MongoDB SSH tunnel, also mount the key file and point `MONGO_TUNNEL_KEY_FILE` at it.

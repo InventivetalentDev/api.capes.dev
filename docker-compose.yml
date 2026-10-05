@@ -3,7 +3,6 @@ services:
     build: .
     restart: unless-stopped
     init: true
+    env_file: .env
     ports:
-      - "3026:3026"
-    volumes:
-      - ./config.js:/app/config.js:ro
+      - "${PORT:-3026}:${PORT:-3026}"
