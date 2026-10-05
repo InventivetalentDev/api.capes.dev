@@ -4,7 +4,7 @@ import {Requests} from "./Requests";
 import {User} from "./typings/User";
 import {Maybe, stripUuid} from "./util";
 import {ProfileProperty, ProfileResponse} from "./typings/ProfileResponse";
-import {ICapeDocument} from "./typings/ICapeDocument";
+import {ICape} from "./typings/ICapeDocument";
 import {Cape} from "./database/schemas/cape";
 import {AxiosRequestConfig, AxiosResponse} from "axios";
 
@@ -96,23 +96,32 @@ export class Caching {
             });
         });
 
-    protected static readonly capeLoadCache: AsyncLoadingCache<AxiosRequestConfig, AxiosResponse> = Caches.builder()
+    // keyed by the serialized request - the cache compares keys by identity, so a config object would never hit
+    protected static readonly capeLoadCache: AsyncLoadingCache<string, AxiosResponse> = Caches.builder()
         .expireAfterWrite(Time.minutes(1))
         .expirationInterval(Time.seconds(10))
-        .buildAsync<AxiosRequestConfig, AxiosResponse>(request => Requests.capeLoadRequest(request));
+        .buildAsync<string, AxiosResponse>(request => Requests.capeLoadRequest(JSON.parse(request)));
 
 
     //// DATABASE
 
-    protected static readonly capeByHashCache: AsyncLoadingCache<string, ICapeDocument> = Caches.builder()
+    protected static readonly capeByHashCache: AsyncLoadingCache<string, ICape> = Caches.builder()
         .expireAfterWrite(Time.minutes(5))
         .expirationInterval(Time.minutes(1))
-        .buildAsync<string, ICapeDocument>(hash => Cape.findByHash(hash));
+        .buildAsync<string, ICape>(hash => Cape.findByHash(hash));
+
+    // image urls are derived from the image content hash, so these barely ever change
+    protected static readonly capeImageCache: AsyncLoadingCache<string, CapeImageInfo> = Caches.builder()
+        .expireAfterWrite(Time.minutes(10))
+        .expirationInterval(Time.minutes(1))
+        .buildAsync<string, CapeImageInfo>(imageHash => Cape.findOne({imageHash: imageHash}, "-_id hash imageHash type width height extension animated cdn")
+            .lean<CapeImageInfo>().exec().then(cape => cape || undefined));
 
     /// REQUESTS
 
-    public static loadCape(request: AxiosRequestConfig): Promise<AxiosResponse> {
-        return this.capeLoadCache.get(request);
+    // only pass plain, JSON-serializable configs - the cache key is the serialized request
+    public static loadCape(request: AxiosRequestConfig): Promise<Maybe<AxiosResponse>> {
+        return this.capeLoadCache.get(JSON.stringify(request));
     }
 
     public static getUserByName(name: string): Promise<Maybe<User>> {
@@ -139,13 +148,19 @@ export class Caching {
 
     /// DATABASE
 
-    public static getCapeByHash(hash: string): Promise<Maybe<ICapeDocument>> {
+    public static getCapeByHash(hash: string): Promise<Maybe<ICape>> {
         return this.capeByHashCache.get(hash);
     }
 
-    public static cacheCape(cape: ICapeDocument): ICapeDocument {
+    public static cacheCape(cape: ICape): ICape {
         this.capeByHashCache.put(cape.hash, cape);
         return cape;
     }
 
+    public static getCapeImageInfo(imageHash: string): Promise<Maybe<CapeImageInfo>> {
+        return this.capeImageCache.get(imageHash);
+    }
+
 }
+
+export type CapeImageInfo = Pick<ICape, "hash" | "imageHash" | "type" | "width" | "height" | "extension" | "animated" | "cdn">;

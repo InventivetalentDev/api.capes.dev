@@ -31,7 +31,7 @@ export default class TlauncherCapeLoader extends CapeLoader {
             method: "GET",
             url: `http://auth.tlauncher.org/skin/profile/texture/login/${ name }`
         }).then(response => {
-            let profile = response.data;
+            let profile = response?.data;
             if (profile && profile.CAPE) {
                 return profile as TlauncherCapeData;
             }

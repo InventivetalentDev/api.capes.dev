@@ -2,7 +2,10 @@ import { Document, Model } from "mongoose";
 import { CapeType } from "./CapeType";
 import { Maybe } from "../util";
 
-export interface ICapeDocument extends Document {
+/**
+ * Plain cape fields, as returned by lean queries
+ */
+export interface ICape {
     hash: string;
 
     player: string;
@@ -30,6 +33,9 @@ export interface ICapeDocument extends Document {
     extraData?: Record<string, any>;
 }
 
+export interface ICapeDocument extends Document, ICape {
+}
+
 export interface ICapeModel extends Model<ICapeDocument> {
-    findByHash(hash: string): Promise<Maybe<ICapeDocument>>;
+    findByHash(hash: string): Promise<Maybe<ICape>>;
 }
