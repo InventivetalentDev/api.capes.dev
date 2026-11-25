@@ -34,7 +34,7 @@
     "jobqu": "2.0.5",
     "metrics-node": "1.0.0",
     "mime-types": "2.1.27",
-    "mongoose": "5.11.15",
+    "mongoose": "8.24.11",
     "source-map-support": "0.5.19",
     "uuid": "8.3.2"
   },
@@ -45,7 +45,7 @@
     "@types/node": "15.9.0",
     "@types/source-map-support": "0.5.3",
     "@types/uuid": "8.3.0",
-    "typescript": "4.1.3"
+    "typescript": "4.9.5"
   },
   "overrides": {
     "gifencoder": {
