@@ -4,12 +4,8 @@ import { CapesConfig } from "../typings/Configs";
 
 export default async function connectToMongo(config: CapesConfig): Promise<Mongoose> {
     // Connect to DB
-    mongoose.set('useNewUrlParser', true);
-    mongoose.set('useFindAndModify', false);
-    mongoose.set('useCreateIndex', true);
-    mongoose.set('useUnifiedTopology', true);
     const options: ConnectOptions = {
-        poolSize: config.mongo.poolSize || 10
+        maxPoolSize: config.mongo.poolSize || 10
     };
     let m: Mongoose;
     if (config.mongo.url) {
